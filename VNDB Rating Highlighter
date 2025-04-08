@@ -1,0 +1,68 @@
+// ==UserScript==
+// @name         VNDB Rating Highlighter
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Tambahkan background color pada elemen rating di vndb.org berdasarkan nilai score dan total.
+// @author       Satud
+// @match        *://vndb.org/*
+// @grant        none
+// @run-at       document-end
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Fungsi untuk menentukan warna berdasarkan total
+    function getTotalColor(total) {
+        if (total < 15) return "red";
+        else if (total < 30) return "orange";
+        else if (total < 45) return "yellow";
+        else if (total < 60) return "green";
+        else return "blue";
+    }
+
+    // Fungsi untuk menentukan warna berdasarkan score
+    // Interpretasi: score di bawah 4.00 red, 4.00-4.99 yellow, 5.00-6.99 green, 7.00 ke atas blue.
+    function getScoreColor(score) {
+        if (score < 4.0) return "red";
+        else if (score < 5.0) return "yellow";
+        else if (score < 7.0) return "green";
+        else return "blue";
+    }
+
+    // Cari semua tabel yang mengandung rating
+    const ratingTables = document.querySelectorAll('table');
+    ratingTables.forEach((table) => {
+        // Periksa apakah tabel mengandung teks "Rating:"
+        if (table.innerText.includes("Rating:")) {
+            const cells = table.querySelectorAll("td");
+            if (cells.length >= 2) {
+                // Nilai score diharapkan pada cell kedua
+                const scoreText = cells[1].childNodes[0]?.textContent.trim();
+                const score = parseFloat(scoreText);
+                let total = NaN;
+                // Ambil total dari elemen <small> yang biasanya memiliki format "(total)"
+                const smallEl = cells[1].querySelector("small");
+                if (smallEl) {
+                    const totalText = smallEl.textContent.replace(/[()]/g, "").trim();
+                    total = parseFloat(totalText);
+                }
+
+                // Dapatkan container utama (misalnya div yang mengandung elemen rating)
+                const container = table.closest('div');
+                if (container) {
+                    // Terapkan warna untuk background elemen <abbr class="ulist-widget-icon"> (berdasarkan total)
+                    const abbrList = container.querySelector("abbr.ulist-widget-icon");
+                    if (abbrList && !isNaN(total)) {
+                        abbrList.style.backgroundColor = getTotalColor(total);
+                    }
+                    // Terapkan warna untuk background elemen <abbr class="icon-list-add"> (berdasarkan score)
+                    const iconAdd = container.querySelector("abbr.icon-list-add");
+                    if (iconAdd && !isNaN(score)) {
+                        iconAdd.style.backgroundColor = getScoreColor(score);
+                    }
+                }
+            }
+        }
+    });
+})();
