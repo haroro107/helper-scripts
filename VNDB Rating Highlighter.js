@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VNDB Composite Material Badge (Score and Total)
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Menampilkan badge gabungan berbentuk dua bulat (score dan total) seperti [5.06 | 102] dengan warna material design pada vndb.org. Jika rating value adalah "-" maka dianggap 0.
 // @author       haroro107
 // @match        *://vndb.org/*
@@ -97,6 +97,12 @@
           // Buat container badge gabungan
           const compositeBadge = document.createElement("span");
           compositeBadge.classList.add("composite-badge");
+
+          // Cek apakah di dalam container terdapat <abbr class="icon-lang-en"></abbr>
+          // Jika ada, tambahkan border dengan warna putih (hanya bila belum ada border putih)
+          if (container.querySelector('abbr.icon-lang-en')) {
+            compositeBadge.style.border = "4px solid #fff";
+          }
 
           // Bagian score
           const scoreSpan = document.createElement("span");
