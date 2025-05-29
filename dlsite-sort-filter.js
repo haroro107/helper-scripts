@@ -87,7 +87,7 @@
         }
         const isRemoved = btn.dataset.removed === 'true';
 
-        document.querySelectorAll('.work_cart, .work_favorite, .work_deals, .work_price_wrap').forEach(el => {
+        document.querySelectorAll('.work_cart, .work_favorite, .work_deals, .work_price_wrap, .work_category_free_sample, .maker_name, .work_operation_btn').forEach(el => {
             if (isRemoved) {
                 el.style.display = '';
             } else {
