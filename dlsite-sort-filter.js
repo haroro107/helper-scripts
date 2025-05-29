@@ -37,6 +37,7 @@
             <option value="star_rating">Star Rating</option>
             <option value="work_review">Reviews</option>
             <option value="work_dl">Sales Count</option>
+            <option value="rating_per_sale">Rating per Sale</option>
         `;
 
         const orderSelect = document.createElement('select');
@@ -89,6 +90,38 @@
                 el.style.display = 'none';
             }
         });
+
+        // Show rating per sale after removing buttons
+        if (!isRemoved) {
+            document.querySelectorAll('li').forEach(li => {
+                const starEl = li.querySelector('.star_rating');
+                const dlEl = li.querySelector('.work_dl');
+                if (starEl && dlEl) {
+                    // Remove previous appended value if exists
+                    const prev = dlEl.querySelector('.rating-per-sale');
+                    if (prev) prev.remove();
+
+                    const salesSpan = dlEl.querySelector('span');
+                    const salesText = salesSpan ? salesSpan.textContent : dlEl.textContent;
+                    const rating = parseCount(starEl.textContent);
+                    const sales = parseCount(salesText);
+                    let ratio = sales > 0 ? (rating / sales) : 0;
+                    // Format to 2 decimals
+                    ratio = isFinite(ratio) ? ratio.toFixed(2) : '0.00';
+
+                    // Create and append
+                    const ratioEl = document.createElement('span');
+                    ratioEl.className = 'rating-per-sale';
+                    ratioEl.style.marginLeft = '5px';
+                    ratioEl.style.color = '#888';
+                    ratioEl.textContent = `(${ratio})`;
+                    dlEl.appendChild(ratioEl);
+                }
+            });
+        } else {
+            // Remove all appended .rating-per-sale spans
+            document.querySelectorAll('.work_dl .rating-per-sale').forEach(el => el.remove());
+        }
 
         // Update button text and state
         if (isRemoved) {
@@ -154,6 +187,26 @@
                     const salesSpan = bSales.querySelector('span');
                     bValue = parseCount(salesSpan ? salesSpan.textContent : bSales.textContent);
                 }
+            }
+            else if (criteria === 'rating_per_sale') {
+                // New sort: star_rating / work_dl
+                const aRating = a.querySelector('.star_rating');
+                const bRating = b.querySelector('.star_rating');
+                const aSalesEl = a.querySelector('.work_dl');
+                const bSalesEl = b.querySelector('.work_dl');
+                let aSales = 0, bSales = 0, aVal = 0, bVal = 0;
+                if (aSalesEl) {
+                    const salesSpan = aSalesEl.querySelector('span');
+                    aSales = parseCount(salesSpan ? salesSpan.textContent : aSalesEl.textContent);
+                }
+                if (bSalesEl) {
+                    const salesSpan = bSalesEl.querySelector('span');
+                    bSales = parseCount(salesSpan ? salesSpan.textContent : bSalesEl.textContent);
+                }
+                aVal = aRating ? parseCount(aRating.textContent) : 0;
+                bVal = bRating ? parseCount(bRating.textContent) : 0;
+                aValue = aSales > 0 ? aVal / aSales : 0;
+                bValue = bSales > 0 ? bVal / bSales : 0;
             }
 
             return order === 'asc' ? aValue - bValue : bValue - aValue;
