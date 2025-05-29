@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DLsite Enhanced Sorter
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Add custom sorting options (rating/reviews/sales) and toggle for cart/favorite buttons
 // @author       haroro107
 // @match        https://www.dlsite.com/*
@@ -81,23 +81,30 @@
     // Toggle cart/favorite buttons
     function toggleCartFavButtons() {
         const btn = document.getElementById('toggle-cart-fav');
-        if (!btn) {
-            // Button not found, abort to avoid runtime error
-            return;
-        }
+        if (!btn) return;
         const isRemoved = btn.dataset.removed === 'true';
 
-        document.querySelectorAll('.work_cart, .work_favorite, .work_deals, .work_price_wrap, .work_category_free_sample, .maker_name, .work_operation_btn').forEach(el => {
-            if (isRemoved) {
-                el.style.display = '';
-            } else {
-                el.style.display = 'none';
-            }
+        // Cache selectors for performance
+        const hideSelectors = [
+            '.work_cart', '.work_favorite', '.work_deals', '.work_price_wrap',
+            '.work_category_free_sample', '.maker_name', '.work_operation_btn'
+        ];
+        const hideElements = [];
+        hideSelectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => hideElements.push(el));
         });
+
+        if (isRemoved) {
+            hideElements.forEach(el => { el.style.display = ''; });
+        } else {
+            hideElements.forEach(el => { el.style.display = 'none'; });
+        }
 
         // Show rating per sale after removing buttons
         if (!isRemoved) {
-            document.querySelectorAll('li').forEach(li => {
+            // Cache all li elements once
+            const liList = document.querySelectorAll('li');
+            liList.forEach(li => {
                 const starEl = li.querySelector('.star_rating');
                 const dlEl = li.querySelector('.work_dl');
                 if (starEl && dlEl) {
@@ -154,67 +161,47 @@
         const list = document.getElementById('search_result_img_box');
         if (!list) return;
 
+        // Cache items and controls
         const items = Array.from(list.querySelectorAll('li'));
-        const criteria = document.getElementById('sort-criteria').value;
-        const order = document.getElementById('sort-order').value;
+        const sortCriteriaEl = document.getElementById('sort-criteria');
+        const sortOrderEl = document.getElementById('sort-order');
+        if (!sortCriteriaEl || !sortOrderEl) return;
+        const criteria = sortCriteriaEl.value;
+        const order = sortOrderEl.value;
 
-        items.sort((a, b) => {
-            let aValue = 0, bValue = 0;
-
+        // Pre-cache values for sorting to avoid repeated DOM queries
+        const itemData = items.map(item => {
+            let value = 0;
             if (criteria === 'star_rating') {
-                const aRating = a.querySelector('.star_rating');
-                const bRating = b.querySelector('.star_rating');
-                aValue = aRating ? parseCount(aRating.textContent) : 0;
-                bValue = bRating ? parseCount(bRating.textContent) : 0;
-            }
-            else if (criteria === 'work_review') {
-                const aReview = a.querySelector('.work_review a') || a.querySelector('.work_review');
-                const bReview = b.querySelector('.work_review a') || b.querySelector('.work_review');
-                aValue = aReview ? parseCount(aReview.textContent) : 0;
-                bValue = bReview ? parseCount(bReview.textContent) : 0;
-            }
-            else if (criteria === 'work_dl') {
-                const aSales = a.querySelector('.work_dl');
-                const bSales = b.querySelector('.work_dl');
-
-                // Extract sales count from the element
-                if (aSales) {
-                    // Get text from the span inside if exists, otherwise use element text
-                    const salesSpan = aSales.querySelector('span');
-                    aValue = parseCount(salesSpan ? salesSpan.textContent : aSales.textContent);
+                const rating = item.querySelector('.star_rating');
+                value = rating ? parseCount(rating.textContent) : 0;
+            } else if (criteria === 'work_review') {
+                const review = item.querySelector('.work_review a') || item.querySelector('.work_review');
+                value = review ? parseCount(review.textContent) : 0;
+            } else if (criteria === 'work_dl') {
+                const sales = item.querySelector('.work_dl');
+                if (sales) {
+                    const salesSpan = sales.querySelector('span');
+                    value = parseCount(salesSpan ? salesSpan.textContent : sales.textContent);
                 }
-
-                if (bSales) {
-                    const salesSpan = bSales.querySelector('span');
-                    bValue = parseCount(salesSpan ? salesSpan.textContent : bSales.textContent);
+            } else if (criteria === 'rating_per_sale') {
+                const rating = item.querySelector('.star_rating');
+                const salesEl = item.querySelector('.work_dl');
+                let sales = 0, val = 0;
+                if (salesEl) {
+                    const salesSpan = salesEl.querySelector('span');
+                    sales = parseCount(salesSpan ? salesSpan.textContent : salesEl.textContent);
                 }
+                val = rating ? parseCount(rating.textContent) : 0;
+                value = sales > 0 ? val / sales : 0;
             }
-            else if (criteria === 'rating_per_sale') {
-                // New sort: star_rating / work_dl
-                const aRating = a.querySelector('.star_rating');
-                const bRating = b.querySelector('.star_rating');
-                const aSalesEl = a.querySelector('.work_dl');
-                const bSalesEl = b.querySelector('.work_dl');
-                let aSales = 0, bSales = 0, aVal = 0, bVal = 0;
-                if (aSalesEl) {
-                    const salesSpan = aSalesEl.querySelector('span');
-                    aSales = parseCount(salesSpan ? salesSpan.textContent : aSalesEl.textContent);
-                }
-                if (bSalesEl) {
-                    const salesSpan = bSalesEl.querySelector('span');
-                    bSales = parseCount(salesSpan ? salesSpan.textContent : bSalesEl.textContent);
-                }
-                aVal = aRating ? parseCount(aRating.textContent) : 0;
-                bVal = bRating ? parseCount(bRating.textContent) : 0;
-                aValue = aSales > 0 ? aVal / aSales : 0;
-                bValue = bSales > 0 ? bVal / bSales : 0;
-            }
-
-            return order === 'asc' ? aValue - bValue : bValue - aValue;
+            return { item, value };
         });
 
+        itemData.sort((a, b) => order === 'asc' ? a.value - b.value : b.value - a.value);
+
         // Reattach sorted items
-        items.forEach(item => list.appendChild(item));
+        itemData.forEach(({ item }) => list.appendChild(item));
     }
 
     // Initialize when page is ready
