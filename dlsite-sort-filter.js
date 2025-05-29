@@ -54,7 +54,7 @@
         // Button to remove cart/favorite buttons
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'toggle-cart-fav';
-        toggleBtn.textContent = 'Remove Buttons';
+        toggleBtn.textContent = 'Show Rating/Sale';
         toggleBtn.style.padding = '5px 10px';
         toggleBtn.style.background = '#f0f0f0';
         toggleBtn.style.border = '1px solid #ccc';
@@ -106,7 +106,6 @@
                     const rating = parseCount(starEl.textContent);
                     const sales = parseCount(salesText);
                     let ratio = sales > 0 ? (rating / sales) : 0;
-                    // Format to 2 decimals
                     ratio = isFinite(ratio) ? ratio.toFixed(2) : '0.00';
 
                     // Create and append
@@ -118,21 +117,19 @@
                     dlEl.appendChild(ratioEl);
                 }
             });
+            btn.textContent = 'Hide Rating/Sale';
+            btn.style.background = '#d0ffd0';
+            btn.dataset.removed = 'true';
         } else {
             // Remove all appended .rating-per-sale spans
             document.querySelectorAll('.work_dl .rating-per-sale').forEach(el => el.remove());
-        }
-
-        // Update button text and state
-        if (isRemoved) {
-            btn.textContent = 'Remove Buttons';
+            btn.textContent = 'Show Rating/Sale';
             btn.style.background = '#f0f0f0';
             delete btn.dataset.removed;
-        } else {
-            btn.textContent = 'Show Buttons';
-            btn.style.background = '#d0ffd0';
-            btn.dataset.removed = 'true';
         }
+
+        // Apply sort by current value after toggling
+        sortResults();
     }
 
     // Improved number parsing from formatted strings
