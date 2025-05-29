@@ -91,13 +91,18 @@
         ];
         const hideElements = [];
         hideSelectors.forEach(sel => {
-            document.querySelectorAll(sel).forEach(el => hideElements.push(el));
+            try {
+                document.querySelectorAll(sel).forEach(el => hideElements.push(el));
+            } catch (e) {
+                // Selector error, skip
+                // Optionally log: console.warn(`Selector failed: ${sel}`, e);
+            }
         });
 
         if (isRemoved) {
-            hideElements.forEach(el => { el.style.display = ''; });
+            hideElements.forEach(el => { if (el) el.style.display = ''; });
         } else {
-            hideElements.forEach(el => { el.style.display = 'none'; });
+            hideElements.forEach(el => { if (el) el.style.display = 'none'; });
         }
 
         // Show rating per sale after removing buttons
@@ -105,6 +110,7 @@
             // Cache all li elements once
             const liList = document.querySelectorAll('li');
             liList.forEach(li => {
+                if (!li) return;
                 const starEl = li.querySelector('.star_rating');
                 const dlEl = li.querySelector('.work_dl');
                 if (starEl && dlEl) {
@@ -114,8 +120,8 @@
 
                     const salesSpan = dlEl.querySelector('span');
                     const salesText = salesSpan ? salesSpan.textContent : dlEl.textContent;
-                    const rating = parseCount(starEl.textContent);
-                    const sales = parseCount(salesText);
+                    const rating = parseCount(starEl.textContent || '');
+                    const sales = parseCount(salesText || '');
                     let ratio = sales > 0 ? (rating / sales) : 0;
                     ratio = isFinite(ratio) ? ratio.toFixed(2) : '0.00';
 
@@ -133,7 +139,9 @@
             btn.dataset.removed = 'true';
         } else {
             // Remove all appended .rating-per-sale spans
-            document.querySelectorAll('.work_dl .rating-per-sale').forEach(el => el.remove());
+            document.querySelectorAll('.work_dl .rating-per-sale').forEach(el => {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            });
             btn.textContent = 'Show Rating/Sale';
             btn.style.background = '#f0f0f0';
             delete btn.dataset.removed;
@@ -145,6 +153,7 @@
 
     // Improved number parsing from formatted strings
     function parseCount(text) {
+        if (!text || typeof text !== 'string') return 0;
         // Handle Japanese/English number formats: "21,898" or "2.3万"
         const num = parseFloat(text.replace(/[^\d\.]/g, ''));
 
@@ -172,28 +181,33 @@
         // Pre-cache values for sorting to avoid repeated DOM queries
         const itemData = items.map(item => {
             let value = 0;
-            if (criteria === 'star_rating') {
-                const rating = item.querySelector('.star_rating');
-                value = rating ? parseCount(rating.textContent) : 0;
-            } else if (criteria === 'work_review') {
-                const review = item.querySelector('.work_review a') || item.querySelector('.work_review');
-                value = review ? parseCount(review.textContent) : 0;
-            } else if (criteria === 'work_dl') {
-                const sales = item.querySelector('.work_dl');
-                if (sales) {
-                    const salesSpan = sales.querySelector('span');
-                    value = parseCount(salesSpan ? salesSpan.textContent : sales.textContent);
+            try {
+                if (criteria === 'star_rating') {
+                    const rating = item.querySelector('.star_rating');
+                    value = rating ? parseCount(rating.textContent || '') : 0;
+                } else if (criteria === 'work_review') {
+                    const review = item.querySelector('.work_review a') || item.querySelector('.work_review');
+                    value = review ? parseCount(review.textContent || '') : 0;
+                } else if (criteria === 'work_dl') {
+                    const sales = item.querySelector('.work_dl');
+                    if (sales) {
+                        const salesSpan = sales.querySelector('span');
+                        value = parseCount((salesSpan ? salesSpan.textContent : sales.textContent) || '');
+                    }
+                } else if (criteria === 'rating_per_sale') {
+                    const rating = item.querySelector('.star_rating');
+                    const salesEl = item.querySelector('.work_dl');
+                    let sales = 0, val = 0;
+                    if (salesEl) {
+                        const salesSpan = salesEl.querySelector('span');
+                        sales = parseCount((salesSpan ? salesSpan.textContent : salesEl.textContent) || '');
+                    }
+                    val = rating ? parseCount(rating.textContent || '') : 0;
+                    value = sales > 0 ? val / sales : 0;
                 }
-            } else if (criteria === 'rating_per_sale') {
-                const rating = item.querySelector('.star_rating');
-                const salesEl = item.querySelector('.work_dl');
-                let sales = 0, val = 0;
-                if (salesEl) {
-                    const salesSpan = salesEl.querySelector('span');
-                    sales = parseCount(salesSpan ? salesSpan.textContent : salesEl.textContent);
-                }
-                val = rating ? parseCount(rating.textContent) : 0;
-                value = sales > 0 ? val / sales : 0;
+            } catch (e) {
+                value = 0;
+                // Optionally log: console.warn('Error parsing item for sort', e, item);
             }
             return { item, value };
         });
@@ -201,7 +215,11 @@
         itemData.sort((a, b) => order === 'asc' ? a.value - b.value : b.value - a.value);
 
         // Reattach sorted items
-        itemData.forEach(({ item }) => list.appendChild(item));
+        itemData.forEach(({ item }) => {
+            if (item && item.parentNode === list) {
+                list.appendChild(item);
+            }
+        });
     }
 
     // Initialize when page is ready
