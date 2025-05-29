@@ -81,6 +81,10 @@
     // Toggle cart/favorite buttons
     function toggleCartFavButtons() {
         const btn = document.getElementById('toggle-cart-fav');
+        if (!btn) {
+            // Button not found, abort to avoid runtime error
+            return;
+        }
         const isRemoved = btn.dataset.removed === 'true';
 
         document.querySelectorAll('.work_cart, .work_favorite, .work_deals, .work_price_wrap').forEach(el => {
