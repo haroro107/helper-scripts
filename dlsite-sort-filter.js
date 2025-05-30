@@ -178,6 +178,24 @@
     const FILE_SIZE_FETCH_DELAY_MAX = 2000; // 2 seconds
 
     function enqueueFileSizeFetch(url, li, dlEl, afterEl) {
+        // Use sessionStorage to cache file size per product URL
+        const cacheKey = 'dlsite_file_size_' + url;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            li.dataset.fileSize = cached;
+            li.dataset.fileSizeFetched = '1';
+            // Display after rating-per-sale
+            if (!dlEl.querySelector('.file-size-span')) {
+                const sizeSpan = document.createElement('span');
+                sizeSpan.className = 'file-size-span';
+                sizeSpan.style.marginLeft = '5px';
+                sizeSpan.style.color = '#888';
+                sizeSpan.textContent = `[${cached}]`;
+                afterEl.after(sizeSpan);
+            }
+            return;
+        }
+        // Not cached, enqueue fetch
         fileSizeFetchQueue.push({ url, li, dlEl, afterEl });
         processFileSizeFetchQueue();
     }
@@ -218,6 +236,12 @@
                 if (size) {
                     li.dataset.fileSize = size;
                     li.dataset.fileSizeFetched = '1';
+                    // Store in sessionStorage
+                    try {
+                        sessionStorage.setItem('dlsite_file_size_' + url, size);
+                    } catch (e) {
+                        // Ignore quota errors
+                    }
                     // Display after rating-per-sale
                     const sizeSpan = document.createElement('span');
                     sizeSpan.className = 'file-size-span';
