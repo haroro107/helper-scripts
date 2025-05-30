@@ -15,7 +15,7 @@ This repository contains a collection of user scripts and a batch script designe
   - [AniDB Sort & Material Color](#anidb-sort--material-color)
   - [DLsite Enhanced Sorter](#dlsite-enhanced-sorter)
   - [F95zone Auto-Continue External Hosts](#f95zone-auto-continue-external-hosts)
-  - [Toggle Romaji Visibility](#toggle-romaji-visibility)
+  - [Toggle Romaji Visibility](#mazii-toggle-romaji-visibility)
   - [Inviska ZIP Batch Script](#inviska-zip-batch-script)
 
 ---
@@ -31,7 +31,7 @@ This repository contains a collection of user scripts and a batch script designe
 | `anidb-sort-filter.js`               | Adds sorting and Material Design coloring to AniDB tables.                  |
 | `dlsite-sort-filter.js`              | Adds custom sorting and toggles for DLsite results.                         |
 | `f95zone-redirect.js`                | Automatically continues through external host links on f95zone.to.          |
-| `toggle-romaji.js`                   | Toggles the visibility of Romaji text on Mazii.net.                         |
+| `mazii-toggle-romaji.js`             | Toggles the visibility of Romaji text on Mazii.net.                         |
 | `inviska-zip.bat`                    | Automates zipping and cleanup of specific files and folders.                |
 
 ---
@@ -94,7 +94,7 @@ This repository contains a collection of user scripts and a batch script designe
 - **Description**: Automatically clicks the "Continue to <host>" button on f95zone.to masked links.
 
 ### Toggle Romaji Visibility
-- **File**: [`toggle-romaji.js`](toggle-romaji.js)
+- **File**: [`mazii-toggle-romaji.js`](mazii-toggle-romaji.js)
 - **Description**: Toggles the visibility of Romaji text on Mazii.net with a single button click.
 
 ### Inviska ZIP Batch Script
