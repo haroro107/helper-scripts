@@ -38,6 +38,7 @@
             <option value="work_review">Reviews</option>
             <option value="work_dl">Sales Count</option>
             <option value="rating_per_sale">Rating per Sale</option>
+            <option value="file_size">File Size</option>
         `;
 
         const orderSelect = document.createElement('select');
@@ -132,14 +133,33 @@
                     ratioEl.style.color = '#888';
                     ratioEl.textContent = `(${ratio})`;
                     dlEl.appendChild(ratioEl);
+
+                    // --- File size fetch and display ---
+                    // Only fetch if not already fetched
+                    if (!li.dataset.fileSizeFetched) {
+                        const titleDiv = li.querySelector('.multiline_truncate a');
+                        if (titleDiv && titleDiv.href) {
+                            fetchFileSize(titleDiv.href, li, dlEl, ratioEl);
+                        }
+                    } else {
+                        // Already fetched, just display if not present
+                        if (!dlEl.querySelector('.file-size-span') && li.dataset.fileSize) {
+                            const sizeSpan = document.createElement('span');
+                            sizeSpan.className = 'file-size-span';
+                            sizeSpan.style.marginLeft = '5px';
+                            sizeSpan.style.color = '#888';
+                            sizeSpan.textContent = `[${li.dataset.fileSize}]`;
+                            ratioEl.after(sizeSpan);
+                        }
+                    }
                 }
             });
             btn.textContent = 'Hide Rating/Sale';
             btn.style.background = '#d0ffd0';
             btn.dataset.removed = 'true';
         } else {
-            // Remove all appended .rating-per-sale spans
-            document.querySelectorAll('.work_dl .rating-per-sale').forEach(el => {
+            // Remove all appended .rating-per-sale and .file-size-span spans
+            document.querySelectorAll('.work_dl .rating-per-sale, .work_dl .file-size-span').forEach(el => {
                 if (el && el.parentNode) el.parentNode.removeChild(el);
             });
             btn.textContent = 'Show Rating/Sale';
@@ -149,6 +169,59 @@
 
         // Apply sort by current value after toggling
         sortResults();
+    }
+
+    // Fetch file size from product page and display after rating-per-sale
+    function fetchFileSize(url, li, dlEl, afterEl) {
+        fetch(url)
+            .then(resp => resp.text())
+            .then(html => {
+                // Parse the HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                let size = '';
+                // Find the <th>ファイル容量</th> and get the next <td>
+                const ths = Array.from(doc.querySelectorAll('th'));
+                for (const th of ths) {
+                    if (th.textContent && th.textContent.includes('ファイル容量')) {
+                        const td = th.nextElementSibling;
+                        if (td) {
+                            size = td.textContent.trim().replace(/\s+/g, '');
+                        }
+                        break;
+                    }
+                }
+                if (size) {
+                    li.dataset.fileSize = size;
+                    li.dataset.fileSizeFetched = '1';
+                    // Display after rating-per-sale
+                    const sizeSpan = document.createElement('span');
+                    sizeSpan.className = 'file-size-span';
+                    sizeSpan.style.marginLeft = '5px';
+                    sizeSpan.style.color = '#888';
+                    sizeSpan.textContent = `[${size}]`;
+                    afterEl.after(sizeSpan);
+                } else {
+                    li.dataset.fileSizeFetched = '1';
+                }
+            })
+            .catch(() => {
+                li.dataset.fileSizeFetched = '1';
+            });
+    }
+
+    // Parse file size string to MB for sorting
+    function parseFileSize(sizeStr) {
+        if (!sizeStr) return 0;
+        // e.g. "4.9GB", "145.66MB"
+        const match = sizeStr.match(/([\d\.]+)\s*(GB|MB)/i);
+        if (!match) return 0;
+        let num = parseFloat(match[1]);
+        if (isNaN(num)) return 0;
+        if (/GB/i.test(match[2])) {
+            num *= 1024;
+        }
+        return num; // in MB
     }
 
     // Improved number parsing from formatted strings
@@ -204,10 +277,12 @@
                     }
                     val = rating ? parseCount(rating.textContent || '') : 0;
                     value = sales > 0 ? val / sales : 0;
+                } else if (criteria === 'file_size') {
+                    // Use data-file-size if available, else 0
+                    value = parseFileSize(item.dataset.fileSize || '');
                 }
             } catch (e) {
                 value = 0;
-                // Optionally log: console.warn('Error parsing item for sort', e, item);
             }
             return { item, value };
         });
