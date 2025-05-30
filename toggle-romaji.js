@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      0.1
 // @description  Toggle visibility of elements with class 'txt-romaji ng-star-inserted' on button click.
-// @author       You
+// @author       haroro107
 // @match        https://mazii.net/*
 // @grant        none
 // ==/UserScript==

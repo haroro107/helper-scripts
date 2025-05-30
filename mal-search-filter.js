@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.6
 // @description  Enhance MyAnimeList with filtering and coloring
-// @author       You
+// @author       haroro107
 // @match        https://myanimelist.net/anime.php*
 // @grant        none
 // ==/UserScript==

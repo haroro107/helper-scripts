@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.1
 // @description  Menambahkan panel sort untuk kolom rating, average, reviews dan user di anidb.net serta mengubah background dan warna teks berdasarkan material color thresholds.
-// @author       -
+// @author       haroro107
 // @match        https://anidb.net/*
 // @grant        none
 // ==/UserScript==

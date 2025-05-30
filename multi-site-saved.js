@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.3
 // @description  Add a watched/unwatched button to multiple anime listing sites
-// @author       You
+// @author       haroro107
 // @match        *://kusonime.com/*
 // @match        *://doronime.id/*
 // @grant        none
