@@ -139,7 +139,7 @@
                     if (!li.dataset.fileSizeFetched) {
                         const titleDiv = li.querySelector('.multiline_truncate a');
                         if (titleDiv && titleDiv.href) {
-                            fetchFileSize(titleDiv.href, li, dlEl, ratioEl);
+                            enqueueFileSizeFetch(titleDiv.href, li, dlEl, ratioEl);
                         }
                     } else {
                         // Already fetched, just display if not present
@@ -171,9 +171,31 @@
         sortResults();
     }
 
-    // Fetch file size from product page and display after rating-per-sale
-    function fetchFileSize(url, li, dlEl, afterEl) {
-        fetch(url)
+    // --- File size fetch queue/throttle ---
+    const fileSizeFetchQueue = [];
+    let fileSizeFetchActive = false;
+    const FILE_SIZE_FETCH_DELAY = 1000; // ms between requests
+
+    function enqueueFileSizeFetch(url, li, dlEl, afterEl) {
+        fileSizeFetchQueue.push({ url, li, dlEl, afterEl });
+        processFileSizeFetchQueue();
+    }
+
+    function processFileSizeFetchQueue() {
+        if (fileSizeFetchActive || fileSizeFetchQueue.length === 0) return;
+        fileSizeFetchActive = true;
+        const { url, li, dlEl, afterEl } = fileSizeFetchQueue.shift();
+        fetchFileSizeThrottled(url, li, dlEl, afterEl).finally(() => {
+            setTimeout(() => {
+                fileSizeFetchActive = false;
+                processFileSizeFetchQueue();
+            }, FILE_SIZE_FETCH_DELAY);
+        });
+    }
+
+    // Throttled fetchFileSize
+    function fetchFileSizeThrottled(url, li, dlEl, afterEl) {
+        return fetch(url)
             .then(resp => resp.text())
             .then(html => {
                 // Parse the HTML
