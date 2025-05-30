@@ -174,7 +174,8 @@
     // --- File size fetch queue/throttle ---
     const fileSizeFetchQueue = [];
     let fileSizeFetchActive = false;
-    const FILE_SIZE_FETCH_DELAY = 1000; // ms between requests
+    const FILE_SIZE_FETCH_DELAY_MIN = 1000; // 1 second
+    const FILE_SIZE_FETCH_DELAY_MAX = 2000; // 2 seconds
 
     function enqueueFileSizeFetch(url, li, dlEl, afterEl) {
         fileSizeFetchQueue.push({ url, li, dlEl, afterEl });
@@ -186,10 +187,11 @@
         fileSizeFetchActive = true;
         const { url, li, dlEl, afterEl } = fileSizeFetchQueue.shift();
         fetchFileSizeThrottled(url, li, dlEl, afterEl).finally(() => {
+            const delay = Math.floor(Math.random() * (FILE_SIZE_FETCH_DELAY_MAX - FILE_SIZE_FETCH_DELAY_MIN + 1)) + FILE_SIZE_FETCH_DELAY_MIN;
             setTimeout(() => {
                 fileSizeFetchActive = false;
                 processFileSizeFetchQueue();
-            }, FILE_SIZE_FETCH_DELAY);
+            }, delay);
         });
     }
 
