@@ -289,20 +289,33 @@
         document.body.appendChild(popup);
     }
 
-    // Function to filter chat messages
+    // Cache normalized blacklists for faster lookup
+    function getNormalizedBlacklist(list) {
+        return list.map(word => normalizeText(word));
+    }
+
+    // Function to filter chat messages (batch process, avoid repeated DOM queries)
     function filterChatMessages() {
+        // Cache normalized blacklists
+        const normalizedExact = getNormalizedBlacklist(exactMatchBlacklist);
+        const normalizedContain = getNormalizedBlacklist(containTextBlacklist);
+
+        // Use a Set to avoid re-processing
+        const processed = new WeakSet();
+
+        // Query all chat message elements
         const chatItems = document.querySelectorAll('#contents #message');
         chatItems.forEach((chatItem) => {
+            if (processed.has(chatItem)) return;
+            processed.add(chatItem);
+
             const messageText = normalizeText(chatItem.textContent);
 
-            // Check if the message is blacklisted
-            const isExactMatchBlacklisted = exactMatchBlacklist.some(word => messageText === normalizeText(word));
-            const isContainTextBlacklisted = containTextBlacklist.some(word => messageText.includes(normalizeText(word)));
-
-            // Check if the message contains styled Unicode
+            // Use Set/Array includes for O(1)/O(n) lookup
+            const isExactMatchBlacklisted = normalizedExact.includes(messageText);
+            const isContainTextBlacklisted = normalizedContain.some(word => messageText.includes(word));
             const isUnicodeStyled = filterUnicode && isStyledUnicode(chatItem.textContent);
 
-            // Remove the message if it's blacklisted or if it contains styled Unicode
             if (isExactMatchBlacklisted || isContainTextBlacklisted || isUnicodeStyled) {
                 const chatContainer = chatItem.closest('yt-live-chat-text-message-renderer');
                 if (chatContainer) {
@@ -312,28 +325,46 @@
         });
     }
 
-    // Monitor for new chat messages
-    const observer = new MutationObserver(() => {
-        filterChatMessages();
-    });
+    // Efficiently observe chat container for new messages
+    function observeChat() {
+        let lastChatContainer = null;
+        let observer = null;
 
-    // Start observing the live chat for changes
-    const chatContainer = document.querySelector('#chat #items');
-    if (chatContainer) {
-        observer.observe(chatContainer, { childList: true, subtree: true });
-    } else {
-        const interval = setInterval(() => {
-            const chatContainerRetry = document.querySelector('#chat #items');
-            if (chatContainerRetry) {
-                observer.observe(chatContainerRetry, { childList: true, subtree: true });
-                clearInterval(interval);
+        function startObserver(container) {
+            if (observer) observer.disconnect();
+            observer = new MutationObserver(() => {
+                filterChatMessages();
+            });
+            observer.observe(container, { childList: true, subtree: true });
+        }
+
+        function tryAttach() {
+            const chatContainer = document.querySelector('#chat #items');
+            if (chatContainer && chatContainer !== lastChatContainer) {
+                lastChatContainer = chatContainer;
+                startObserver(chatContainer);
+                filterChatMessages();
             }
-        }, 1000);
-    }
+        }
 
-    // Add the button to the UI
+        // Initial and dynamic attach
+        tryAttach();
+        const interval = setInterval(tryAttach, 1000);
+        // Optionally clear interval after a while to avoid infinite polling
+        setTimeout(() => clearInterval(interval), 20000);
+    }
+    observeChat();
+
+    // Add the button to the UI (debounced for performance)
+    let buttonAdded = false;
+    function debouncedCreateBlacklistButton() {
+        if (!buttonAdded) {
+            createBlacklistButton();
+            buttonAdded = true;
+        }
+    }
     const rendererObserver = new MutationObserver(() => {
-        createBlacklistButton();
+        debouncedCreateBlacklistButton();
     });
     rendererObserver.observe(document.body, { childList: true, subtree: true });
 })();
