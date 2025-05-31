@@ -38,13 +38,14 @@
                 position: relative;
                 margin: 10px;
                 padding: 8px 12px;
-                background-color: #ff0000;
+                background-color: #0f0f0f;
                 color: white;
                 border: none;
                 border-radius: 4px;
                 cursor: pointer;
                 font-size: 14px;
                 z-index: 9999;
+                border: 1px solid #444;
             `;
 
             button.addEventListener('click', openBlacklistPopup);
