@@ -256,6 +256,7 @@
             sessionStorage.setItem('filterUnicode', JSON.stringify(filterUnicode));
 
             alert('Chat filter updated!');
+            location.reload();
             popup.remove();
         });
 
