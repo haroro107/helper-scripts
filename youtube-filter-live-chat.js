@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Filter Live Chat
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Filter YouTube live chat messages with options for exact match and containing text blacklist
 // @author       haroro107
 // @match        *://www.youtube.com/*
@@ -256,7 +256,11 @@
             sessionStorage.setItem('filterUnicode', JSON.stringify(filterUnicode));
 
             alert('Chat filter updated!');
-            location.reload();
+            // Reload only the chat iframe instead of the whole page
+            const chatFrame = document.getElementById('chatframe');
+            if (chatFrame && chatFrame.contentWindow) {
+                chatFrame.contentWindow.location.reload();
+            }
             popup.remove();
         });
 
