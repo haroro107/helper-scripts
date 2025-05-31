@@ -88,39 +88,119 @@
             return label;
         }
 
-        // Exact match input field
-        const exactMatchInput = document.createElement('textarea');
-        exactMatchInput.style.cssText = `
-            box-sizing: border-box;
-            width: 100%;
-            height: 48px;
-            margin-bottom: 10px;
-            background: #272727;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-size: 13px;
-            padding: 6px 8px;
-            resize: vertical;
-        `;
-        exactMatchInput.value = exactMatchBlacklist.join('\n');
+        // Helper to create a list UI for blacklist
+        function createBlacklistList(blacklist, placeholder) {
+            const wrapper = document.createElement('div');
+            wrapper.style.marginBottom = '10px';
 
-        // Contain text input field
-        const containTextInput = document.createElement('textarea');
-        containTextInput.style.cssText = `
-            box-sizing: border-box;
-            width: 100%;
-            height: 48px;
-            margin-bottom: 10px;
-            background: #272727;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-size: 13px;
-            padding: 6px 8px;
-            resize: vertical;
-        `;
-        containTextInput.value = containTextBlacklist.join('\n');
+            const list = document.createElement('ul');
+            list.style.cssText = `
+                list-style: none;
+                padding: 0;
+                margin: 0 0 6px 0;
+                max-height: 70px;
+                overflow-y: auto;
+            `;
+
+            function renderList() {
+                // Remove all children safely instead of using innerHTML
+                while (list.firstChild) {
+                    list.removeChild(list.firstChild);
+                }
+                blacklist.forEach((word, idx) => {
+                    const li = document.createElement('li');
+                    li.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 2px;
+                    `;
+                    const span = document.createElement('span');
+                    span.textContent = word;
+                    span.style.cssText = `
+                        flex: 1;
+                        font-size: 13px;
+                        background: #272727;
+                        padding: 2px 8px;
+                        border-radius: 3px;
+                        margin-right: 6px;
+                        word-break: break-all;
+                    `;
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '✕';
+                    removeBtn.title = 'Remove';
+                    removeBtn.style.cssText = `
+                        background: #444;
+                        color: #fff;
+                        border: none;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        padding: 0 7px;
+                        height: 22px;
+                        line-height: 20px;
+                    `;
+                    removeBtn.onclick = () => {
+                        blacklist.splice(idx, 1);
+                        renderList();
+                    };
+                    li.appendChild(span);
+                    li.appendChild(removeBtn);
+                    list.appendChild(li);
+                });
+            }
+            renderList();
+
+            const inputRow = document.createElement('div');
+            inputRow.style.cssText = 'display: flex; gap: 6px;';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = placeholder;
+            input.style.cssText = `
+                flex: 1;
+                background: #272727;
+                color: #fff;
+                border: 1px solid #444;
+                border-radius: 4px;
+                font-size: 13px;
+                padding: 4px 8px;
+            `;
+            const addBtn = document.createElement('button');
+            addBtn.textContent = 'Add';
+            addBtn.style.cssText = `
+                background: #272727;
+                color: #fff;
+                border: 1px solid #444;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+                padding: 4px 12px;
+                transition: background 0.2s;
+            `;
+            addBtn.addEventListener('mouseenter', () => addBtn.style.backgroundColor = '#444');
+            addBtn.addEventListener('mouseleave', () => addBtn.style.backgroundColor = '#272727');
+            addBtn.onclick = () => {
+                const val = input.value.trim();
+                if (val && !blacklist.includes(val)) {
+                    blacklist.push(val);
+                    input.value = '';
+                    renderList();
+                }
+            };
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') addBtn.click();
+            });
+            inputRow.appendChild(input);
+            inputRow.appendChild(addBtn);
+
+            wrapper.appendChild(list);
+            wrapper.appendChild(inputRow);
+
+            return { wrapper, getList: () => blacklist.slice() };
+        }
+
+        // Create UI for both blacklists
+        const exactMatchListUI = createBlacklistList([...exactMatchBlacklist], 'Add exact match word');
+        const containTextListUI = createBlacklistList([...containTextBlacklist], 'Add contain text word');
 
         // Unicode filter checkbox
         const unicodeFilterLabel = document.createElement('label');
@@ -166,8 +246,8 @@
         saveButton.addEventListener('mouseenter', () => saveButton.style.backgroundColor = '#444');
         saveButton.addEventListener('mouseleave', () => saveButton.style.backgroundColor = '#272727');
         saveButton.addEventListener('click', () => {
-            exactMatchBlacklist = exactMatchInput.value.split('\n').map(word => word.trim()).filter(Boolean);
-            containTextBlacklist = containTextInput.value.split('\n').map(word => word.trim()).filter(Boolean);
+            exactMatchBlacklist = exactMatchListUI.getList();
+            containTextBlacklist = containTextListUI.getList();
             filterUnicode = unicodeFilterCheckbox.checked;
 
             // Save to sessionStorage
@@ -199,10 +279,10 @@
         buttonRow.appendChild(saveButton);
         buttonRow.appendChild(cancelButton);
 
-        popup.appendChild(makeLabel('Exact Match Blacklist (one per line)'));
-        popup.appendChild(exactMatchInput);
-        popup.appendChild(makeLabel('Contain Text Blacklist (one per line)'));
-        popup.appendChild(containTextInput);
+        popup.appendChild(makeLabel('Exact Match Blacklist'));
+        popup.appendChild(exactMatchListUI.wrapper);
+        popup.appendChild(makeLabel('Contain Text Blacklist'));
+        popup.appendChild(containTextListUI.wrapper);
         popup.appendChild(unicodeFilterLabel);
         popup.appendChild(buttonRow);
         document.body.appendChild(popup);
