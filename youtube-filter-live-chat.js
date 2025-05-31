@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Filter Live Chat
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      2
 // @description  Filter YouTube live chat messages with options for exact match and containing text blacklist
 // @author       haroro107
 // @match        *://www.youtube.com/*
