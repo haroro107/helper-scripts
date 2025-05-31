@@ -4,7 +4,7 @@
 // @version      1.7
 // @description  Filter YouTube live chat messages with options for exact match and containing text blacklist
 // @author       haroro107
-// @match        *://www.youtube.com/*
+// @match        *://www.youtube.com/watch*
 // @grant        none
 // ==/UserScript==
 
