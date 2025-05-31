@@ -12,8 +12,13 @@
     'use strict';
 
     // Load blacklist from sessionStorage
-    let exactMatchBlacklist = sessionStorage.getItem('exactMatchBlacklist') ? JSON.parse(sessionStorage.getItem('exactMatchBlacklist')) : [];
-    let containTextBlacklist = sessionStorage.getItem('containTextBlacklist') ? JSON.parse(sessionStorage.getItem('containTextBlacklist')) : ["judol", "judi"];
+    let blacklistEntries = sessionStorage.getItem('blacklistEntries')
+        ? JSON.parse(sessionStorage.getItem('blacklistEntries'))
+        : [
+            // Default entries
+            { word: "judol", type: "contain" },
+            { word: "judi", type: "contain" }
+        ];
     let filterUnicode = sessionStorage.getItem('filterUnicode') ? JSON.parse(sessionStorage.getItem('filterUnicode')) : true;
 
     // Normalize text (remove Unicode styling)
@@ -89,7 +94,7 @@
         }
 
         // Helper to create a list UI for blacklist
-        function createBlacklistList(blacklist, placeholder) {
+        function createBlacklistList(entries) {
             const wrapper = document.createElement('div');
             wrapper.style.marginBottom = '10px';
 
@@ -98,7 +103,7 @@
                 list-style: none;
                 padding: 0;
                 margin: 0 0 6px 0;
-                max-height: 70px;
+                max-height: 110px;
                 overflow-y: auto;
             `;
 
@@ -107,15 +112,16 @@
                 while (list.firstChild) {
                     list.removeChild(list.firstChild);
                 }
-                blacklist.forEach((word, idx) => {
+                entries.forEach((entry, idx) => {
                     const li = document.createElement('li');
                     li.style.cssText = `
                         display: flex;
                         align-items: center;
                         margin-bottom: 2px;
                     `;
+                    // Word display
                     const span = document.createElement('span');
-                    span.textContent = word;
+                    span.textContent = entry.word;
                     span.style.cssText = `
                         flex: 1;
                         font-size: 13px;
@@ -125,6 +131,30 @@
                         margin-right: 6px;
                         word-break: break-all;
                     `;
+                    // Select for type
+                    const select = document.createElement('select');
+                    select.style.cssText = `
+                        margin-right: 6px;
+                        font-size: 13px;
+                        background: #272727;
+                        color: #fff;
+                        border: 1px solid #444;
+                        border-radius: 3px;
+                        padding: 2px 4px;
+                    `;
+                    const optionContain = document.createElement('option');
+                    optionContain.value = 'contain';
+                    optionContain.textContent = 'Contain Text';
+                    const optionExact = document.createElement('option');
+                    optionExact.value = 'exact';
+                    optionExact.textContent = 'Exact Match';
+                    select.appendChild(optionContain);
+                    select.appendChild(optionExact);
+                    select.value = entry.type || 'contain';
+                    select.onchange = () => {
+                        entry.type = select.value;
+                    };
+                    // Remove button
                     const removeBtn = document.createElement('button');
                     removeBtn.textContent = '✕';
                     removeBtn.title = 'Remove';
@@ -140,10 +170,11 @@
                         line-height: 20px;
                     `;
                     removeBtn.onclick = () => {
-                        blacklist.splice(idx, 1);
+                        entries.splice(idx, 1);
                         renderList();
                     };
                     li.appendChild(span);
+                    li.appendChild(select);
                     li.appendChild(removeBtn);
                     list.appendChild(li);
                 });
@@ -151,12 +182,13 @@
             renderList();
 
             const inputRow = document.createElement('div');
-            inputRow.style.cssText = 'display: flex; gap: 6px;';
+            inputRow.style.cssText = 'display: flex; gap: 6px; width: 100%;';
             const input = document.createElement('input');
             input.type = 'text';
-            input.placeholder = placeholder;
+            input.placeholder = 'Add word...';
             input.style.cssText = `
                 flex: 1;
+                min-width: 0;
                 background: #272727;
                 color: #fff;
                 border: 1px solid #444;
@@ -164,24 +196,52 @@
                 font-size: 13px;
                 padding: 4px 8px;
             `;
-            const addBtn = document.createElement('button');
-            addBtn.textContent = 'Add';
-            addBtn.style.cssText = `
+            // Select for type (default: contain)
+            const typeSelect = document.createElement('select');
+            typeSelect.style.cssText = `
+                min-width: 0;
+                font-size: 13px;
                 background: #272727;
                 color: #fff;
                 border: 1px solid #444;
                 border-radius: 4px;
+                padding: 4px 6px;
+            `;
+            const optContain = document.createElement('option');
+            optContain.value = 'contain';
+            optContain.textContent = 'Contain Text';
+            const optExact = document.createElement('option');
+            optExact.value = 'exact';
+            optExact.textContent = 'Exact Match';
+            typeSelect.appendChild(optContain);
+            typeSelect.appendChild(optExact);
+            typeSelect.value = 'contain';
+
+            // Add button as icon
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '＋';
+            addBtn.title = 'Add';
+            addBtn.style.cssText = `
+                background: #444;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
                 cursor: pointer;
-                font-size: 13px;
-                padding: 4px 12px;
+                font-size: 16px;
+                padding: 0 10px;
+                height: 28px;
+                width: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 transition: background 0.2s;
             `;
-            addBtn.addEventListener('mouseenter', () => addBtn.style.backgroundColor = '#444');
-            addBtn.addEventListener('mouseleave', () => addBtn.style.backgroundColor = '#272727');
+            addBtn.addEventListener('mouseenter', () => addBtn.style.backgroundColor = '#666');
+            addBtn.addEventListener('mouseleave', () => addBtn.style.backgroundColor = '#444');
             addBtn.onclick = () => {
                 const val = input.value.trim();
-                if (val && !blacklist.includes(val)) {
-                    blacklist.push(val);
+                if (val && !entries.some(e => e.word === val && e.type === typeSelect.value)) {
+                    entries.push({ word: val, type: typeSelect.value });
                     input.value = '';
                     renderList();
                 }
@@ -190,17 +250,17 @@
                 if (e.key === 'Enter') addBtn.click();
             });
             inputRow.appendChild(input);
+            inputRow.appendChild(typeSelect);
             inputRow.appendChild(addBtn);
 
             wrapper.appendChild(list);
             wrapper.appendChild(inputRow);
 
-            return { wrapper, getList: () => blacklist.slice() };
+            return { wrapper, getList: () => entries.slice() };
         }
 
-        // Create UI for both blacklists
-        const exactMatchListUI = createBlacklistList([...exactMatchBlacklist], 'Add exact match word');
-        const containTextListUI = createBlacklistList([...containTextBlacklist], 'Add contain text word');
+        // Create UI for blacklist
+        const blacklistListUI = createBlacklistList([...blacklistEntries]);
 
         // Unicode filter checkbox
         const unicodeFilterLabel = document.createElement('label');
@@ -246,13 +306,11 @@
         saveButton.addEventListener('mouseenter', () => saveButton.style.backgroundColor = '#444');
         saveButton.addEventListener('mouseleave', () => saveButton.style.backgroundColor = '#272727');
         saveButton.addEventListener('click', () => {
-            exactMatchBlacklist = exactMatchListUI.getList();
-            containTextBlacklist = containTextListUI.getList();
+            blacklistEntries = blacklistListUI.getList();
             filterUnicode = unicodeFilterCheckbox.checked;
 
             // Save to sessionStorage
-            sessionStorage.setItem('exactMatchBlacklist', JSON.stringify(exactMatchBlacklist));
-            sessionStorage.setItem('containTextBlacklist', JSON.stringify(containTextBlacklist));
+            sessionStorage.setItem('blacklistEntries', JSON.stringify(blacklistEntries));
             sessionStorage.setItem('filterUnicode', JSON.stringify(filterUnicode));
 
             alert('Chat filter updated!');
@@ -284,10 +342,8 @@
         buttonRow.appendChild(saveButton);
         buttonRow.appendChild(cancelButton);
 
-        popup.appendChild(makeLabel('Exact Match Blacklist'));
-        popup.appendChild(exactMatchListUI.wrapper);
-        popup.appendChild(makeLabel('Contain Text Blacklist'));
-        popup.appendChild(containTextListUI.wrapper);
+        popup.appendChild(makeLabel('Blacklist Entries'));
+        popup.appendChild(blacklistListUI.wrapper);
         popup.appendChild(unicodeFilterLabel);
         popup.appendChild(buttonRow);
         document.body.appendChild(popup);
@@ -300,14 +356,19 @@
             const messageText = normalizeText(chatItem.textContent);
 
             // Check if the message is blacklisted
-            const isExactMatchBlacklisted = exactMatchBlacklist.some(word => messageText === normalizeText(word));
-            const isContainTextBlacklisted = containTextBlacklist.some(word => messageText.includes(normalizeText(word)));
+            const isBlacklisted = blacklistEntries.some(entry => {
+                if (entry.type === 'exact') {
+                    return messageText === normalizeText(entry.word);
+                } else {
+                    return messageText.includes(normalizeText(entry.word));
+                }
+            });
 
             // Check if the message contains styled Unicode
             const isUnicodeStyled = filterUnicode && isStyledUnicode(chatItem.textContent);
 
             // Remove the message if it's blacklisted or if it contains styled Unicode
-            if (isExactMatchBlacklisted || isContainTextBlacklisted || isUnicodeStyled) {
+            if (isBlacklisted || isUnicodeStyled) {
                 const chatContainer = chatItem.closest('yt-live-chat-text-message-renderer');
                 if (chatContainer) {
                     chatContainer.remove();
