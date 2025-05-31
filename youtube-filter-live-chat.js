@@ -36,18 +36,19 @@
             button.textContent = 'Edit Chat Filter';
             button.style.cssText = `
                 position: relative;
-                margin: 10px;
-                padding: 8px 12px;
-                background-color: #0f0f0f;
-                color: white;
-                border: none;
+                margin: 10px 0 10px 10px;
+                padding: 6px 14px;
+                background-color: #272727;
+                color: #fff;
+                border: 1px solid #444;
                 border-radius: 4px;
                 cursor: pointer;
-                font-size: 14px;
+                font-size: 13px;
                 z-index: 9999;
-                border: 1px solid #444;
+                transition: background 0.2s;
             `;
-
+            button.addEventListener('mouseenter', () => button.style.backgroundColor = '#444');
+            button.addEventListener('mouseleave', () => button.style.backgroundColor = '#272727');
             button.addEventListener('click', openBlacklistPopup);
             container.insertBefore(button, container.firstChild);
         }
@@ -64,58 +65,106 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px;
-            background-color: white;
-            border: 2px solid #000;
+            width: 320px;
+            background: #0f0f0f;
+            border: 1.5px solid #444;
             border-radius: 8px;
             z-index: 10000;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+            padding: 18px 16px 14px 16px;
+            color: #fff;
+            font-family: inherit;
         `;
+
+        // Label helper
+        function makeLabel(text) {
+            const label = document.createElement('div');
+            label.textContent = text;
+            label.style.cssText = `
+                font-size: 13px;
+                margin-bottom: 4px;
+                font-weight: 500;
+            `;
+            return label;
+        }
 
         // Exact match input field
         const exactMatchInput = document.createElement('textarea');
         exactMatchInput.style.cssText = `
+            box-sizing: border-box;
             width: 100%;
-            height: 100px;
+            height: 48px;
             margin-bottom: 10px;
+            background: #272727;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 6px 8px;
+            resize: vertical;
         `;
         exactMatchInput.value = exactMatchBlacklist.join('\n');
 
         // Contain text input field
         const containTextInput = document.createElement('textarea');
         containTextInput.style.cssText = `
+            box-sizing: border-box;
             width: 100%;
-            height: 100px;
+            height: 48px;
             margin-bottom: 10px;
+            background: #272727;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 6px 8px;
+            resize: vertical;
         `;
         containTextInput.value = containTextBlacklist.join('\n');
 
         // Unicode filter checkbox
         const unicodeFilterLabel = document.createElement('label');
         unicodeFilterLabel.style.cssText = `
-            display: block;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
         `;
         const unicodeFilterCheckbox = document.createElement('input');
         unicodeFilterCheckbox.type = 'checkbox';
         unicodeFilterCheckbox.checked = filterUnicode;
-        unicodeFilterCheckbox.style.marginRight = '5px';
+        unicodeFilterCheckbox.style.marginRight = '7px';
+        unicodeFilterCheckbox.style.accentColor = '#272727';
 
         unicodeFilterLabel.appendChild(unicodeFilterCheckbox);
         unicodeFilterLabel.appendChild(document.createTextNode('Filter Unicode-styled messages'));
+
+        // Button row
+        const buttonRow = document.createElement('div');
+        buttonRow.style.cssText = `
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px;
+        `;
 
         // Save button
         const saveButton = document.createElement('button');
         saveButton.textContent = 'Save';
         saveButton.style.cssText = `
-            padding: 8px 12px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
+            padding: 6px 16px;
+            background: #272727;
+            color: #fff;
+            border: 1px solid #444;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
         `;
+        saveButton.addEventListener('mouseenter', () => saveButton.style.backgroundColor = '#444');
+        saveButton.addEventListener('mouseleave', () => saveButton.style.backgroundColor = '#272727');
         saveButton.addEventListener('click', () => {
             exactMatchBlacklist = exactMatchInput.value.split('\n').map(word => word.trim()).filter(Boolean);
             containTextBlacklist = containTextInput.value.split('\n').map(word => word.trim()).filter(Boolean);
@@ -134,23 +183,28 @@
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'Cancel';
         cancelButton.style.cssText = `
-            padding: 8px 12px;
-            background-color: #f44336;
-            color: white;
-            border: none;
+            padding: 6px 16px;
+            background: #272727;
+            color: #fff;
+            border: 1px solid #444;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px;
+            font-size: 13px;
+            transition: background 0.2s;
         `;
+        cancelButton.addEventListener('mouseenter', () => cancelButton.style.backgroundColor = '#444');
+        cancelButton.addEventListener('mouseleave', () => cancelButton.style.backgroundColor = '#272727');
         cancelButton.addEventListener('click', () => popup.remove());
 
-        popup.appendChild(document.createTextNode('Exact Match Blacklist (one per line)'));
+        buttonRow.appendChild(saveButton);
+        buttonRow.appendChild(cancelButton);
+
+        popup.appendChild(makeLabel('Exact Match Blacklist (one per line)'));
         popup.appendChild(exactMatchInput);
-        popup.appendChild(document.createTextNode('Contain Text Blacklist (one per line)'));
+        popup.appendChild(makeLabel('Contain Text Blacklist (one per line)'));
         popup.appendChild(containTextInput);
         popup.appendChild(unicodeFilterLabel);
-        popup.appendChild(saveButton);
-        popup.appendChild(cancelButton);
+        popup.appendChild(buttonRow);
         document.body.appendChild(popup);
     }
 
