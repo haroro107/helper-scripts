@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         YouTube Filter Live Chat
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.9
 // @description  Filter YouTube live chat messages with options for exact match and containing text blacklist
 // @author       haroro107
-// @match        *://www.youtube.com/watch*
+// @match        *://www.youtube.com/*
 // @grant        none
 // ==/UserScript==
 
@@ -293,33 +293,20 @@
         document.body.appendChild(popup);
     }
 
-    // Cache normalized blacklists for faster lookup
-    function getNormalizedBlacklist(list) {
-        return list.map(word => normalizeText(word));
-    }
-
-    // Function to filter chat messages (batch process, avoid repeated DOM queries)
+    // Function to filter chat messages
     function filterChatMessages() {
-        // Cache normalized blacklists
-        const normalizedExact = getNormalizedBlacklist(exactMatchBlacklist);
-        const normalizedContain = getNormalizedBlacklist(containTextBlacklist);
-
-        // Use a Set to avoid re-processing
-        const processed = new WeakSet();
-
-        // Query all chat message elements
         const chatItems = document.querySelectorAll('#contents #message');
         chatItems.forEach((chatItem) => {
-            if (processed.has(chatItem)) return;
-            processed.add(chatItem);
-
             const messageText = normalizeText(chatItem.textContent);
 
-            // Use Set/Array includes for O(1)/O(n) lookup
-            const isExactMatchBlacklisted = normalizedExact.includes(messageText);
-            const isContainTextBlacklisted = normalizedContain.some(word => messageText.includes(word));
+            // Check if the message is blacklisted
+            const isExactMatchBlacklisted = exactMatchBlacklist.some(word => messageText === normalizeText(word));
+            const isContainTextBlacklisted = containTextBlacklist.some(word => messageText.includes(normalizeText(word)));
+
+            // Check if the message contains styled Unicode
             const isUnicodeStyled = filterUnicode && isStyledUnicode(chatItem.textContent);
 
+            // Remove the message if it's blacklisted or if it contains styled Unicode
             if (isExactMatchBlacklisted || isContainTextBlacklisted || isUnicodeStyled) {
                 const chatContainer = chatItem.closest('yt-live-chat-text-message-renderer');
                 if (chatContainer) {
@@ -329,46 +316,28 @@
         });
     }
 
-    // Efficiently observe chat container for new messages
-    function observeChat() {
-        let lastChatContainer = null;
-        let observer = null;
+    // Monitor for new chat messages
+    const observer = new MutationObserver(() => {
+        filterChatMessages();
+    });
 
-        function startObserver(container) {
-            if (observer) observer.disconnect();
-            observer = new MutationObserver(() => {
-                filterChatMessages();
-            });
-            observer.observe(container, { childList: true, subtree: true });
-        }
-
-        function tryAttach() {
-            const chatContainer = document.querySelector('#chat #items');
-            if (chatContainer && chatContainer !== lastChatContainer) {
-                lastChatContainer = chatContainer;
-                startObserver(chatContainer);
-                filterChatMessages();
+    // Start observing the live chat for changes
+    const chatContainer = document.querySelector('#chat #items');
+    if (chatContainer) {
+        observer.observe(chatContainer, { childList: true, subtree: true });
+    } else {
+        const interval = setInterval(() => {
+            const chatContainerRetry = document.querySelector('#chat #items');
+            if (chatContainerRetry) {
+                observer.observe(chatContainerRetry, { childList: true, subtree: true });
+                clearInterval(interval);
             }
-        }
-
-        // Initial and dynamic attach
-        tryAttach();
-        const interval = setInterval(tryAttach, 1000);
-        // Optionally clear interval after a while to avoid infinite polling
-        setTimeout(() => clearInterval(interval), 20000);
+        }, 1000);
     }
-    observeChat();
 
-    // Add the button to the UI (debounced for performance)
-    let buttonAdded = false;
-    function debouncedCreateBlacklistButton() {
-        if (!buttonAdded) {
-            createBlacklistButton();
-            buttonAdded = true;
-        }
-    }
+    // Add the button to the UI
     const rendererObserver = new MutationObserver(() => {
-        debouncedCreateBlacklistButton();
+        createBlacklistButton();
     });
     rendererObserver.observe(document.body, { childList: true, subtree: true });
 })();
