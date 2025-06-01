@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Filter Live Chat
 // @namespace    http://tampermonkey.net/
-// @version      2
+// @version      2.1
 // @description  Filter YouTube live chat messages with options for exact match and containing text blacklist
 // @author       haroro107
 // @match        *://www.youtube.com/*
@@ -30,6 +30,33 @@
     function isStyledUnicode(text) {
         const validLanguageRegex = /^[\x20-\x7E\u00A0-\u052F\u2E80-\u9FFF\u0400-\u04FF\uAC00-\uD7AF\u1100-\u11FF]+$/;
         return !validLanguageRegex.test(text); // Return true if text contains styled Unicode characters
+    }
+
+    // Add this helper for leet/similar normalization
+    function normalizeLeet(text) {
+        return text
+            .replace(/0/g, 'o')
+            .replace(/1/g, 'i')
+            .replace(/3/g, 'e')
+            .replace(/4/g, 'a')
+            .replace(/5/g, 's')
+            .replace(/7/g, 't')
+            .replace(/8/g, 'b')
+            .replace(/9/g, 'g')
+            .replace(/@/g, 'a')
+            .replace(/\$/g, 's')
+            .replace(/[^a-z0-9]/gi, '') // remove non-alphanum for stricter matching
+            .toLowerCase();
+    }
+
+    // Helper: check if pattern is a subsequence of text
+    function isSubsequence(pattern, text) {
+        let i = 0, j = 0;
+        while (i < pattern.length && j < text.length) {
+            if (pattern[i] === text[j]) i++;
+            j++;
+        }
+        return i === pattern.length;
     }
 
     // Create button to open the popup
@@ -131,7 +158,7 @@
                         margin-right: 6px;
                         word-break: break-all;
                     `;
-                    // Select for type
+                    // Select for type (exact/contain/leet)
                     const select = document.createElement('select');
                     select.style.cssText = `
                         margin-right: 6px;
@@ -148,12 +175,17 @@
                     const optionExact = document.createElement('option');
                     optionExact.value = 'exact';
                     optionExact.textContent = 'Exact Match';
+                    const optionLeet = document.createElement('option');
+                    optionLeet.value = 'leet';
+                    optionLeet.textContent = 'Leet/Similar';
                     select.appendChild(optionContain);
                     select.appendChild(optionExact);
+                    select.appendChild(optionLeet);
                     select.value = entry.type || 'contain';
                     select.onchange = () => {
                         entry.type = select.value;
                     };
+
                     // Remove button
                     const removeBtn = document.createElement('button');
                     removeBtn.textContent = '✕';
@@ -196,7 +228,7 @@
                 font-size: 13px;
                 padding: 4px 8px;
             `;
-            // Select for type (default: contain)
+            // Select for type (default: contain, with leet/similar)
             const typeSelect = document.createElement('select');
             typeSelect.style.cssText = `
                 min-width: 0;
@@ -213,8 +245,12 @@
             const optExact = document.createElement('option');
             optExact.value = 'exact';
             optExact.textContent = 'Exact Match';
+            const optLeet = document.createElement('option');
+            optLeet.value = 'leet';
+            optLeet.textContent = 'Leet/Similar';
             typeSelect.appendChild(optContain);
             typeSelect.appendChild(optExact);
+            typeSelect.appendChild(optLeet);
             typeSelect.value = 'contain';
 
             // Add button as icon
@@ -354,13 +390,19 @@
         const chatItems = document.querySelectorAll('#contents #message');
         chatItems.forEach((chatItem) => {
             const messageText = normalizeText(chatItem.textContent);
+            const messageLeet = normalizeLeet(chatItem.textContent);
 
             // Check if the message is blacklisted
             const isBlacklisted = blacklistEntries.some(entry => {
-                if (entry.type === 'exact') {
-                    return messageText === normalizeText(entry.word);
+                const entryWordNorm = normalizeText(entry.word);
+                const entryWordLeet = normalizeLeet(entry.word);
+                if (entry.type === 'leet') {
+                    // Leet/Similar: subsequence match
+                    return isSubsequence(entryWordLeet, messageLeet);
+                } else if (entry.type === 'exact') {
+                    return messageText === entryWordNorm;
                 } else {
-                    return messageText.includes(normalizeText(entry.word));
+                    return messageText.includes(entryWordNorm);
                 }
             });
 
