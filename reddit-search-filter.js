@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Reddit Search Subreddit Filter
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Add subreddit filtering buttons to Reddit search results
 // @author       haroro107
 // @match        *://www.reddit.com/r/*/search*
@@ -47,8 +47,9 @@
         const currentQuery = searchInput.value.trim();
         const newFilter = `-subreddit:${subreddit}`;
 
-        // Check if filter already exists
-        if (currentQuery.includes(newFilter)) return;
+        // Split query into tokens and check for exact filter
+        const tokens = currentQuery.split(/\s+/);
+        if (tokens.includes(newFilter)) return;
 
         // Append new filter to query
         searchInput.value = currentQuery
