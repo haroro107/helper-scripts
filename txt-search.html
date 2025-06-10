@@ -579,22 +579,21 @@
                     );
                 }
 
+                const fileResult = document.createElement('div');
+                fileResult.className = 'file-result';
+
+                const header = document.createElement('div');
+                header.className = 'file-header';
+                header.innerHTML = `from ${file.name}`;
+
+                const content = document.createElement('div');
+                content.className = 'file-content';
+                if (resultsSection.classList.contains('fullscreen')) {
+                    content.classList.add('fullscreen');
+                }
+
                 if (matchingLines.length > 0) {
                     totalResults += matchingLines.length;
-
-                    const fileResult = document.createElement('div');
-                    fileResult.className = 'file-result';
-
-                    const header = document.createElement('div');
-                    header.className = 'file-header';
-                    header.innerHTML = `from ${file.name}`;
-
-                    const content = document.createElement('div');
-                    content.className = 'file-content';
-                    if (resultsSection.classList.contains('fullscreen')) {
-                        content.classList.add('fullscreen');
-                    }
-
                     matchingLines.forEach(line => {
                         const entry = document.createElement('div');
                         entry.className = 'file-entry';
@@ -613,7 +612,32 @@
                         entry.innerHTML = highlightedLine;
                         content.appendChild(entry);
                     });
+                }
 
+                // For OR mode, show "not found" for each search term not found in this file
+                if (mode === 'or') {
+                    const foundTerms = new Set();
+                    matchingLines.forEach(line => {
+                        searchTerms.forEach(term => {
+                            if (line.toLowerCase().includes(term.toLowerCase())) {
+                                foundTerms.add(term.toLowerCase());
+                            }
+                        });
+                    });
+                    const notFoundTerms = searchTerms.filter(term => !foundTerms.has(term.toLowerCase()));
+                    if (notFoundTerms.length > 0) {
+                        notFoundTerms.forEach(term => {
+                            const entry = document.createElement('div');
+                            entry.className = 'file-entry';
+                            entry.style.opacity = '0.6';
+                            entry.style.fontStyle = 'italic';
+                            entry.innerHTML = `<span class="highlight">${term}</span> <span style="color:#ff5e62;">not found</span>`;
+                            content.appendChild(entry);
+                        });
+                    }
+                }
+
+                if (matchingLines.length > 0 || (mode === 'or' && content.childNodes.length > 0)) {
                     fileResult.appendChild(header);
                     fileResult.appendChild(content);
                     resultsContainer.appendChild(fileResult);
