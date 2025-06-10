@@ -735,6 +735,9 @@
             let totalResults = 0;
             resultsContainer.innerHTML = '';
 
+            // Track which terms are found in any file
+            let foundTermsGlobal = new Set();
+
             uploadedFiles.forEach(file => {
                 let matchingLines = [];
                 if (mode === 'or') {
@@ -799,6 +802,7 @@
                         searchTerms.forEach(term => {
                             if (line.toLowerCase().includes(term.toLowerCase())) {
                                 foundTerms.add(term.toLowerCase());
+                                foundTermsGlobal.add(term.toLowerCase());
                             }
                         });
                     });
@@ -830,6 +834,26 @@
                     resultsContainer.appendChild(fileResult);
                 }
             });
+
+            // Show global not found summary at the bottom (for OR mode)
+            if (mode === 'or' && searchTerms.length > 0) {
+                const notFoundGlobal = searchTerms.filter(
+                    term => !foundTermsGlobal.has(term.toLowerCase())
+                );
+                if (notFoundGlobal.length > 0) {
+                    const summary = document.createElement('div');
+                    summary.className = 'empty-state';
+                    summary.style.marginTop = '32px';
+                    summary.innerHTML = `
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>Not Found In Any File</h3>
+                        <p>
+                            ${notFoundGlobal.map(term => `<span class="highlight">${term}</span>`).join(', ')}
+                        </p>
+                    `;
+                    resultsContainer.appendChild(summary);
+                }
+            }
 
             if (totalResults === 0) {
                 resultsContainer.innerHTML = `
