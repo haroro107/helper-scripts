@@ -178,6 +178,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 10px;
         }
         
         #results-count {
@@ -211,6 +212,8 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
         }
         
         .file-header {
@@ -223,6 +226,14 @@
         
         .file-content {
             padding: 15px 20px;
+            /* nothing here, default */
+        }
+        
+        .file-content.fullscreen {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 100%;
+            overflow: auto;
         }
         
         .file-entry {
@@ -286,6 +297,45 @@
                 font-size: 2.2rem;
             }
         }
+        
+        .fullscreen-btn {
+            background: rgba(255,255,255,0.1);
+            color: #4fc3f7;
+            border: 1px solid #4fc3f7;
+            padding: 8px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+        
+        .fullscreen-btn:hover {
+            background: rgba(79,195,247,0.15);
+        }
+        
+        .results-section.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: rgba(20, 20, 30, 0.98);
+            border-radius: 0;
+            box-shadow: none;
+            padding: 40px 10vw 40px 10vw;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .results-section.fullscreen #results-container {
+            flex: 1 1 auto;
+            max-height: none;
+            padding-right: 0;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -322,7 +372,12 @@
             <div class="results-section">
                 <div class="results-header">
                     <div id="results-count">Results: 0</div>
-                    <button id="clear-btn">Clear All Files</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="fullscreen-btn" id="fullscreen-btn" title="Toggle Full Screen">
+                            <i class="fas fa-expand"></i> Full Screen
+                        </button>
+                        <button id="clear-btn">Clear All Files</button>
+                    </div>
                 </div>
                 <div id="results-container">
                     <div class="empty-state">
@@ -352,6 +407,8 @@
         const resultsContainer = document.getElementById('results-container');
         const resultsCount = document.getElementById('results-count');
         const clearButton = document.getElementById('clear-btn');
+        const resultsSection = document.querySelector('.results-section');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
         
         // Setup event listeners
         uploadButton.addEventListener('click', () => fileInput.click());
@@ -361,6 +418,24 @@
             if (e.key === 'Enter') performSearch();
         });
         clearButton.addEventListener('click', clearAllFiles);
+        
+        // Full screen toggle
+        fullscreenBtn.addEventListener('click', () => {
+            resultsSection.classList.toggle('fullscreen');
+            // Toggle .fullscreen on all .file-content elements
+            document.querySelectorAll('.file-content').forEach(el => {
+                if (resultsSection.classList.contains('fullscreen')) {
+                    el.classList.add('fullscreen');
+                } else {
+                    el.classList.remove('fullscreen');
+                }
+            });
+            if (resultsSection.classList.contains('fullscreen')) {
+                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> Exit Full Screen';
+            } else {
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> Full Screen';
+            }
+        });
         
         // Handle file upload
         function handleFileUpload(e) {
@@ -464,6 +539,10 @@
                     
                     const content = document.createElement('div');
                     content.className = 'file-content';
+                    // Add fullscreen class if currently in fullscreen
+                    if (resultsSection.classList.contains('fullscreen')) {
+                        content.classList.add('fullscreen');
+                    }
                     
                     matchingLines.forEach(line => {
                         const entry = document.createElement('div');
@@ -535,7 +614,7 @@
             if (uploadedFiles.length === 0) {
                 resultsContainer.innerHTML = `
                 `;
-                resultsCount.textContent = 'Results: 8';
+                resultsCount.textContent = 'Results: 0';
             }
         }, 1000);
     </script>
