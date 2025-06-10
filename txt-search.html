@@ -694,13 +694,39 @@
                 </div>
             `;
 
-            uploadedFiles.forEach(file => {
+            uploadedFiles.forEach((file, idx) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
-                // Show uniqueKey for debugging, or just file name
+                // Add remove button for each file
                 fileItem.innerHTML = `
                     <i class="fas fa-file-alt"></i> ${file.name} (${file.lines.length} entries)
+                    <button class="remove-file-btn" title="Remove file" style="margin-left:12px; color:#ff7043; background:none; border:none; cursor:pointer; font-size:1.1em;">
+                        <i class="fas fa-times"></i>
+                    </button>
                 `;
+                // Remove file on button click
+                fileItem.querySelector('.remove-file-btn').onclick = function() {
+                    uploadedFiles.splice(idx, 1);
+                    updateFileList();
+                    if (uploadedFiles.length === 0) {
+                        resultsContainer.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-file-alt"></i>
+                                <h3>No Files Uploaded</h3>
+                                <p>Upload text files to begin searching</p>
+                            </div>
+                        `;
+                        resultsCount.textContent = 'Results: 0';
+                        searchInput.value = '';
+                    } else {
+                        // If search input is empty, show all data; else, re-search
+                        if (!searchInput.value.trim()) {
+                            showAllData();
+                        } else {
+                            performSearch();
+                        }
+                    }
+                };
                 fileList.appendChild(fileItem);
             });
         }
