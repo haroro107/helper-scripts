@@ -91,9 +91,8 @@
             margin-bottom: 18px;
             box-shadow: 0 2px 8px rgba(33,147,176,0.08);
         }
-
-        .file-upload:hover {
-            background: rgba(255, 255, 255, 0.13);
+        .file-upload.dragover {
+            background: rgba(66, 165, 245, 0.18);
             border-color: #42a5f5;
         }
 
@@ -578,6 +577,7 @@
         const fullscreenSearchBtn = document.getElementById('fullscreen-search-btn');
         const fullscreenSearchMode = document.getElementById('fullscreen-search-mode');
         const fullscreenSearchToggleBtn = document.getElementById('fullscreen-search-toggle-btn');
+        const fileUploadArea = document.querySelector('.file-upload');
 
         // Setup event listeners
         uploadButton.addEventListener('click', () => fileInput.click());
@@ -963,6 +963,30 @@
                 };
             });
         }
+
+        // Drag & Drop support for file upload area
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileUploadArea.classList.add('dragover');
+        });
+        fileUploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileUploadArea.classList.remove('dragover');
+        });
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileUploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'text/plain' || f.name.endsWith('.txt'));
+            if (files.length === 0) {
+                alert('Please drop only text files (.txt)');
+                return;
+            }
+            // Simulate file input change event for consistency
+            handleFileUpload({ target: { files } });
+        });
     </script>
 </body>
 </html>
