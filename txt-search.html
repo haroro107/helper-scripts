@@ -251,6 +251,24 @@
             font-weight: bold;
             color: #4fc3f7;
             border-bottom: 1px solid rgba(79, 195, 247, 0.3);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .file-header:hover {
+            background: rgba(79, 195, 247, 0.32);
+        }
+        .file-header .collapse-icon {
+            float: right;
+            font-size: 1.1em;
+            margin-left: 8px;
+            transition: transform 0.2s;
+        }
+        .file-header.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .file-content.collapsed {
+            display: none;
         }
         
         .file-content {
@@ -772,6 +790,9 @@
             }
 
             resultsCount.textContent = `Results: ${totalResults}`;
+
+            // Make collapsible after rendering
+            makeFileResultsCollapsible();
         }
 
         // Show all data grouped by file
@@ -816,6 +837,9 @@
                 `;
             }
             resultsCount.textContent = `Results: ${totalResults}`;
+
+            // Make collapsible after rendering
+            makeFileResultsCollapsible();
         }
         
         // Clear all uploaded files
@@ -861,6 +885,32 @@
 
         // On page load, hide fullscreen search toggle button
         fullscreenSearchToggleBtn.style.display = 'none';
+
+        // Utility: Add collapse/expand to file results
+        function makeFileResultsCollapsible() {
+            document.querySelectorAll('.file-result').forEach(fileResult => {
+                const header = fileResult.querySelector('.file-header');
+                const content = fileResult.querySelector('.file-content');
+                if (!header || !content) return;
+
+                // Add collapse icon if not present
+                if (!header.querySelector('.collapse-icon')) {
+                    const icon = document.createElement('span');
+                    icon.className = 'collapse-icon';
+                    icon.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                    header.appendChild(icon);
+                }
+
+                // Default: expanded
+                header.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+
+                header.onclick = function() {
+                    const isCollapsed = content.classList.toggle('collapsed');
+                    header.classList.toggle('collapsed', isCollapsed);
+                };
+            });
+        }
     </script>
 </body>
 </html>
