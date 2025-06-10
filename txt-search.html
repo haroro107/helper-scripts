@@ -365,6 +365,69 @@
             display: flex;
             flex-direction: column;
         }
+        .fullscreen-search-bar {
+            display: none;
+            margin-bottom: 18px;
+            gap: 10px;
+            align-items: center;
+        }
+        .fullscreen-search-bar.visible {
+            display: flex;
+        }
+        .fullscreen-search-bar input,
+        .fullscreen-search-bar textarea {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.08rem;
+            background: rgba(255,255,255,0.13);
+            color: #fff;
+            outline: none;
+        }
+        .fullscreen-search-bar button {
+            background: linear-gradient(to right, #2193b0, #6dd5ed);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            font-size: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            min-height: 40px;
+        }
+        .fullscreen-search-toggle-btn {
+            background: rgba(255,255,255,0.1);
+            color: #4fc3f7;
+            border: 1px solid #4fc3f7;
+            padding: 8px 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: all 0.3s;
+        }
+        .fullscreen-search-toggle-btn:hover {
+            background: rgba(79,195,247,0.15);
+        }
+        .fullscreen-search-bar select {
+            padding: 12px 22px;
+            border-radius: 12px;
+            border: 1.5px solid #4fc3f7;
+            background: rgba(255,255,255,0.13);
+            color: #4fc3f7;
+            font-size: 1.08rem;
+            margin: 0 8px 0 0;
+            transition: border 0.2s, background 0.2s;
+            box-shadow: 0 2px 8px rgba(79,195,247,0.04);
+            outline: none;
+            min-width: 80px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        .fullscreen-search-bar select:focus {
+            border: 1.5px solid #2193b0;
+            background: rgba(79,195,247,0.08);
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -403,9 +466,21 @@
             </div>
             
             <div class="results-section">
+                <!-- Fullscreen search bar (hidden by default) -->
+                <div class="fullscreen-search-bar" id="fullscreen-search-bar">
+                    <textarea id="fullscreen-search-input" placeholder="Enter search terms, one per line"></textarea>
+                    <select id="fullscreen-search-mode" title="Search Mode">
+                        <option value="or">OR</option>
+                        <option value="and">AND</option>
+                    </select>
+                    <button id="fullscreen-search-btn"><i class="fas fa-search"></i></button>
+                </div>
                 <div class="results-header">
                     <div id="results-count">Results: 0</div>
                     <div style="display: flex; gap: 10px;">
+                        <button class="fullscreen-search-toggle-btn" id="fullscreen-search-toggle-btn" title="Show/Hide Search in Fullscreen" style="display:none;">
+                            <i class="fas fa-search"></i> Search
+                        </button>
                         <button class="fullscreen-btn" id="fullscreen-btn" title="Toggle Full Screen">
                             <i class="fas fa-expand"></i> Full Screen
                         </button>
@@ -443,6 +518,11 @@
         const clearButton = document.getElementById('clear-btn');
         const resultsSection = document.querySelector('.results-section');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const fullscreenSearchBar = document.getElementById('fullscreen-search-bar');
+        const fullscreenSearchInput = document.getElementById('fullscreen-search-input');
+        const fullscreenSearchBtn = document.getElementById('fullscreen-search-btn');
+        const fullscreenSearchMode = document.getElementById('fullscreen-search-mode');
+        const fullscreenSearchToggleBtn = document.getElementById('fullscreen-search-toggle-btn');
         
         // Setup event listeners
         uploadButton.addEventListener('click', () => fileInput.click());
@@ -456,6 +536,25 @@
         });
         clearButton.addEventListener('click', clearAllFiles);
         
+        // Show/hide fullscreen search bar
+        fullscreenSearchToggleBtn.addEventListener('click', () => {
+            fullscreenSearchBar.classList.toggle('visible');
+            if (fullscreenSearchBar.classList.contains('visible')) {
+                fullscreenSearchInput.focus();
+            }
+        });
+
+        // Fullscreen search event
+        fullscreenSearchBtn.addEventListener('click', () => {
+            performSearch(true);
+        });
+        fullscreenSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                performSearch(true);
+            }
+        });
+
         // Full screen toggle
         fullscreenBtn.addEventListener('click', () => {
             resultsSection.classList.toggle('fullscreen');
@@ -467,38 +566,42 @@
                     el.classList.remove('fullscreen');
                 }
             });
+            // Toggle fullscreen search toggle button
             if (resultsSection.classList.contains('fullscreen')) {
                 fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> Exit Full Screen';
+                fullscreenSearchToggleBtn.style.display = '';
             } else {
                 fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> Full Screen';
+                fullscreenSearchToggleBtn.style.display = 'none';
+                fullscreenSearchBar.classList.remove('visible');
             }
         });
         
         // Handle file upload
         function handleFileUpload(e) {
             const files = Array.from(e.target.files);
-            
+
             if (files.length === 0) return;
-            
+
             files.forEach(file => {
                 if (file.type !== 'text/plain') {
                     alert('Please upload only text files (.txt)');
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const content = event.target.result;
                     const fileName = file.name;
                     // Use a unique key for each file: name + size + lastModified
                     const uniqueKey = `${file.name}_${file.size}_${file.lastModified}`;
-                    
+
                     // Check if file is already uploaded (by uniqueKey)
                     if (uploadedFiles.some(f => f.uniqueKey === uniqueKey)) {
                         alert(`File "${fileName}" is already uploaded`);
                         return;
                     }
-                    
+
                     // Store file content with uniqueKey
                     uploadedFiles.push({
                         name: fileName,
@@ -506,14 +609,19 @@
                         content: content,
                         lines: content.split('\n').filter(line => line.trim() !== '')
                     });
-                    
+
                     // Update UI
                     updateFileList();
                     updateEmptyState();
+
+                    // If search input is empty, show all data
+                    if (!searchInput.value.trim()) {
+                        showAllData();
+                    }
                 };
                 reader.readAsText(file);
             });
-            
+
             // Reset input to allow uploading same file again
             fileInput.value = '';
         }
@@ -542,17 +650,26 @@
             });
         }
         
-        // Perform search
-        function performSearch() {
-            const rawInput = searchInput.value.trim();
-            const searchTerms = rawInput
-                .split('\n')
-                .map(t => t.trim())
-                .filter(Boolean);
-            const mode = searchMode.value; // 'or' or 'and'
+        // Perform search (normal or fullscreen)
+        function performSearch(isFullscreen = false) {
+            let rawInput, searchTerms, mode;
+            if (isFullscreen && resultsSection.classList.contains('fullscreen')) {
+                rawInput = fullscreenSearchInput.value.trim();
+                searchTerms = rawInput.split('\n').map(t => t.trim()).filter(Boolean);
+                mode = fullscreenSearchMode.value;
+            } else {
+                rawInput = searchInput.value.trim();
+                searchTerms = rawInput.split('\n').map(t => t.trim()).filter(Boolean);
+                mode = searchMode.value;
+            }
 
             if (searchTerms.length === 0) {
-                alert('Please enter at least one search term');
+                // If no search terms, show all data if files uploaded
+                if (uploadedFiles.length > 0) {
+                    showAllData();
+                } else {
+                    alert('Please enter at least one search term');
+                }
                 return;
             }
             if (uploadedFiles.length === 0) {
@@ -656,6 +773,50 @@
 
             resultsCount.textContent = `Results: ${totalResults}`;
         }
+
+        // Show all data grouped by file
+        function showAllData() {
+            resultsContainer.innerHTML = '';
+            let totalResults = 0;
+            uploadedFiles.forEach(file => {
+                if (file.lines.length === 0) return;
+                const fileResult = document.createElement('div');
+                fileResult.className = 'file-result';
+
+                const header = document.createElement('div');
+                header.className = 'file-header';
+                header.innerHTML = `from ${file.name}`;
+
+                const content = document.createElement('div');
+                content.className = 'file-content';
+                if (resultsSection.classList.contains('fullscreen')) {
+                    content.classList.add('fullscreen');
+                }
+
+                file.lines.forEach(line => {
+                    const entry = document.createElement('div');
+                    entry.className = 'file-entry';
+                    entry.textContent = line;
+                    content.appendChild(entry);
+                });
+
+                fileResult.appendChild(header);
+                fileResult.appendChild(content);
+                resultsContainer.appendChild(fileResult);
+                totalResults += file.lines.length;
+            });
+
+            if (totalResults === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No Data</h3>
+                        <p>No entries to display</p>
+                    </div>
+                `;
+            }
+            resultsCount.textContent = `Results: ${totalResults}`;
+        }
         
         // Clear all uploaded files
         function clearAllFiles() {
@@ -697,6 +858,9 @@
                 resultsCount.textContent = 'Results: 0';
             }
         }, 1000);
+
+        // On page load, hide fullscreen search toggle button
+        fullscreenSearchToggleBtn.style.display = 'none';
     </script>
 </body>
 </html>
