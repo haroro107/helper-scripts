@@ -738,10 +738,16 @@
                 rawInput = fullscreenSearchInput.value.trim();
                 searchTerms = rawInput.split('\n').map(t => t.trim()).filter(Boolean);
                 mode = fullscreenSearchMode.value;
+                // Sync value to main search input
+                searchInput.value = rawInput;
+                searchMode.value = mode;
             } else {
                 rawInput = searchInput.value.trim();
                 searchTerms = rawInput.split('\n').map(t => t.trim()).filter(Boolean);
                 mode = searchMode.value;
+                // Sync value to fullscreen search input
+                fullscreenSearchInput.value = rawInput;
+                fullscreenSearchMode.value = mode;
             }
 
             if (searchTerms.length === 0) {
