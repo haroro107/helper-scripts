@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text File Search Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .description {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+        
+        .app-container {
+            background: rgba(25, 25, 35, 0.85);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            padding: 25px;
+        }
+        
+        .upload-section, .search-section {
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2 i {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .file-upload {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px dashed #5d8aa8;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #4fc3f7;
+        }
+        
+        .file-upload p {
+            margin-bottom: 15px;
+            color: #b0bec5;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(to right, #2193b0, #6dd5ed);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .upload-btn i {
+            margin-right: 8px;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 15px;
+        }
+        
+        #search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        #search-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.3);
+        }
+        
+        #search-input::placeholder {
+            color: #9e9e9e;
+        }
+        
+        #search-btn {
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            color: white;
+            border: none;
+            padding: 0 35px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        
+        #search-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .results-section {
+            background: rgba(20, 20, 30, 0.7);
+            border-radius: 10px;
+            padding: 25px;
+            min-height: 300px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #results-count {
+            font-size: 1.2rem;
+            color: #4fc3f7;
+        }
+        
+        #clear-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ff5e62;
+            border: 1px solid #ff5e62;
+            padding: 8px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #clear-btn:hover {
+            background: rgba(255, 94, 98, 0.2);
+        }
+        
+        #results-container {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .file-result {
+            margin-bottom: 25px;
+            background: rgba(30, 30, 45, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .file-header {
+            background: rgba(79, 195, 247, 0.2);
+            padding: 12px 20px;
+            font-weight: bold;
+            color: #4fc3f7;
+            border-bottom: 1px solid rgba(79, 195, 247, 0.3);
+        }
+        
+        .file-content {
+            padding: 15px 20px;
+        }
+        
+        .file-entry {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+            transition: all 0.2s;
+        }
+        
+        .file-entry:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+        
+        .highlight {
+            background-color: rgba(255, 215, 0, 0.25);
+            color: #ffd700;
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9e9e9e;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #b0bec5;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #b0bec5;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+            }
+            
+            #search-btn {
+                justify-content: center;
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Text File Search Tool</h1>
+            <p class="description">Upload multiple text files containing file paths and search through their contents. The application will display matching entries grouped by source file.</p>
+        </header>
+        
+        <div class="app-container">
+            <div class="panel">
+                <div class="upload-section">
+                    <h2><i class="fas fa-file-upload"></i> Upload Text Files</h2>
+                    <div class="file-upload">
+                        <p>Drag & drop your text files here or click to browse</p>
+                        <button class="upload-btn" id="upload-button">
+                            <i class="fas fa-cloud-upload-alt"></i> Choose Files
+                        </button>
+                        <input type="file" id="file-input" accept=".txt" multiple>
+                    </div>
+                    <div id="file-list"></div>
+                </div>
+                
+                <div class="search-section">
+                    <h2><i class="fas fa-search"></i> Search Content</h2>
+                    <div class="search-container">
+                        <input type="text" id="search-input" placeholder="Enter search term (e.g., cing, keqing, etc.)">
+                        <button id="search-btn">Search</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-section">
+                <div class="results-header">
+                    <div id="results-count">Results: 0</div>
+                    <button id="clear-btn">Clear All Files</button>
+                </div>
+                <div id="results-container">
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No Files Uploaded</h3>
+                        <p>Upload text files to begin searching</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Upload multiple text files and search through their content. Matching results will be grouped by source file.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Store uploaded files data
+        let uploadedFiles = [];
+        
+        // DOM elements
+        const fileInput = document.getElementById('file-input');
+        const uploadButton = document.getElementById('upload-button');
+        const fileList = document.getElementById('file-list');
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsCount = document.getElementById('results-count');
+        const clearButton = document.getElementById('clear-btn');
+        
+        // Setup event listeners
+        uploadButton.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileUpload);
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        clearButton.addEventListener('click', clearAllFiles);
+        
+        // Handle file upload
+        function handleFileUpload(e) {
+            const files = Array.from(e.target.files);
+            
+            if (files.length === 0) return;
+            
+            files.forEach(file => {
+                if (file.type !== 'text/plain') {
+                    alert('Please upload only text files (.txt)');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    const fileName = file.name;
+                    // Use a unique key for each file: name + size + lastModified
+                    const uniqueKey = `${file.name}_${file.size}_${file.lastModified}`;
+                    
+                    // Check if file is already uploaded (by uniqueKey)
+                    if (uploadedFiles.some(f => f.uniqueKey === uniqueKey)) {
+                        alert(`File "${fileName}" is already uploaded`);
+                        return;
+                    }
+                    
+                    // Store file content with uniqueKey
+                    uploadedFiles.push({
+                        name: fileName,
+                        uniqueKey: uniqueKey,
+                        content: content,
+                        lines: content.split('\n').filter(line => line.trim() !== '')
+                    });
+                    
+                    // Update UI
+                    updateFileList();
+                    updateEmptyState();
+                };
+                reader.readAsText(file);
+            });
+            
+            // Reset input to allow uploading same file again
+            fileInput.value = '';
+        }
+        
+        // Update the file list display
+        function updateFileList() {
+            if (uploadedFiles.length === 0) {
+                fileList.innerHTML = '<p>No files uploaded yet</p>';
+                return;
+            }
+            
+            fileList.innerHTML = `
+                <div class="file-list-header">
+                    <strong>Uploaded Files:</strong> (${uploadedFiles.length})
+                </div>
+            `;
+            
+            uploadedFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                // Show uniqueKey for debugging, or just file name
+                fileItem.innerHTML = `
+                    <i class="fas fa-file-alt"></i> ${file.name} (${file.lines.length} entries)
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        // Perform search
+        function performSearch() {
+            const searchTerm = searchInput.value.trim();
+            
+            if (searchTerm === '') {
+                alert('Please enter a search term');
+                return;
+            }
+            
+            if (uploadedFiles.length === 0) {
+                alert('Please upload some text files first');
+                return;
+            }
+            
+            let totalResults = 0;
+            resultsContainer.innerHTML = '';
+            
+            uploadedFiles.forEach(file => {
+                const matchingLines = file.lines.filter(line => 
+                    line.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                
+                if (matchingLines.length > 0) {
+                    totalResults += matchingLines.length;
+                    
+                    const fileResult = document.createElement('div');
+                    fileResult.className = 'file-result';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'file-header';
+                    header.innerHTML = `from ${file.name}`;
+                    
+                    const content = document.createElement('div');
+                    content.className = 'file-content';
+                    
+                    matchingLines.forEach(line => {
+                        const entry = document.createElement('div');
+                        entry.className = 'file-entry';
+                        
+                        // Highlight search term
+                        const regex = new RegExp(searchTerm, 'gi');
+                        const highlightedLine = line.replace(regex, 
+                            match => `<span class="highlight">${match}</span>`
+                        );
+                        
+                        entry.innerHTML = highlightedLine;
+                        content.appendChild(entry);
+                    });
+                    
+                    fileResult.appendChild(header);
+                    fileResult.appendChild(content);
+                    resultsContainer.appendChild(fileResult);
+                }
+            });
+            
+            if (totalResults === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>No Results Found</h3>
+                        <p>No entries match your search term "${searchTerm}"</p>
+                    </div>
+                `;
+            }
+            
+            resultsCount.textContent = `Results: ${totalResults}`;
+        }
+        
+        // Clear all uploaded files
+        function clearAllFiles() {
+            uploadedFiles = [];
+            updateFileList();
+            resultsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>No Files Uploaded</h3>
+                    <p>Upload text files to begin searching</p>
+                </div>
+            `;
+            resultsCount.textContent = 'Results: 0';
+            searchInput.value = '';
+        }
+        
+        // Update empty state
+        function updateEmptyState() {
+            if (uploadedFiles.length > 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>Ready to Search</h3>
+                        <p>Enter a search term to find matching entries</p>
+                    </div>
+                `;
+                resultsCount.textContent = 'Results: 0';
+            }
+        }
+        
+        // Initialize
+        updateFileList();
+        
+        // Demo data for initial display
+        setTimeout(() => {
+            if (uploadedFiles.length === 0) {
+                resultsContainer.innerHTML = `
+                `;
+                resultsCount.textContent = 'Results: 8';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
