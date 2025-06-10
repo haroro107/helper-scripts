@@ -125,27 +125,53 @@
         .search-container {
             display: flex;
             gap: 15px;
+            align-items: flex-start;
+            background: rgba(40, 60, 90, 0.85);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+            padding: 18px 18px 18px 18px;
+            margin-bottom: 10px;
+            transition: box-shadow 0.3s;
+            align-items: center;
         }
-        
+        .search-container:focus-within {
+            box-shadow: 0 8px 32px rgba(79,195,247,0.18);
+        }
         #search-input {
             flex: 1;
             padding: 15px 20px;
             border: none;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.13);
             color: white;
             font-size: 1.1rem;
             outline: none;
-            transition: all 0.3s;
+            transition: background 0.3s, box-shadow 0.3s;
+            resize: vertical;
+            min-height: 48px;
+            max-height: 120px;
+            box-shadow: 0 2px 8px rgba(79,195,247,0.06);
         }
-        
         #search-input:focus {
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.3);
+            background: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.18);
         }
-        
-        #search-input::placeholder {
-            color: #9e9e9e;
+        #search-mode {
+            padding: 12px 22px;
+            border-radius: 16px;
+            border: 1.5px solid #4fc3f7;
+            background: rgba(255,255,255,0.13);
+            color: #4fc3f7;
+            font-size: 1.08rem;
+            margin-top: 2px;
+            margin-bottom: 0;
+            transition: border 0.2s, background 0.2s;
+            box-shadow: 0 2px 8px rgba(79,195,247,0.04);
+        }
+        #search-mode:focus {
+            border: 1.5px solid #2193b0;
+            background: rgba(79,195,247,0.08);
+            outline: none;
         }
         
         #search-btn {
@@ -154,16 +180,19 @@
             border: none;
             padding: 0 35px;
             font-size: 1.1rem;
-            border-radius: 50px;
+            border-radius: 16px;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
+            min-height: 48px;
+            box-shadow: 0 2px 8px rgba(255,94,98,0.08);
         }
         
-        #search-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        #search-btn:hover, #search-btn:focus {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 6px 18px rgba(255,94,98,0.18);
+            outline: none;
         }
         
         .results-section {
@@ -363,7 +392,11 @@
                 <div class="search-section">
                     <h2><i class="fas fa-search"></i> Search Content</h2>
                     <div class="search-container">
-                        <input type="text" id="search-input" placeholder="Enter search term (e.g., cing, keqing, etc.)">
+                        <textarea id="search-input" placeholder="Enter search terms, one per line"></textarea>
+                        <select id="search-mode" title="Search Mode">
+                            <option value="or">OR</option>
+                            <option value="and">AND</option>
+                        </select>
                         <button id="search-btn">Search</button>
                     </div>
                 </div>
@@ -404,6 +437,7 @@
         const fileList = document.getElementById('file-list');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-btn');
+        const searchMode = document.getElementById('search-mode');
         const resultsContainer = document.getElementById('results-container');
         const resultsCount = document.getElementById('results-count');
         const clearButton = document.getElementById('clear-btn');
@@ -414,8 +448,11 @@
         uploadButton.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileUpload);
         searchButton.addEventListener('click', performSearch);
-        searchInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') performSearch();
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                performSearch();
+            }
         });
         clearButton.addEventListener('click', clearAllFiles);
         
@@ -507,73 +544,92 @@
         
         // Perform search
         function performSearch() {
-            const searchTerm = searchInput.value.trim();
-            
-            if (searchTerm === '') {
-                alert('Please enter a search term');
+            const rawInput = searchInput.value.trim();
+            const searchTerms = rawInput
+                .split('\n')
+                .map(t => t.trim())
+                .filter(Boolean);
+            const mode = searchMode.value; // 'or' or 'and'
+
+            if (searchTerms.length === 0) {
+                alert('Please enter at least one search term');
                 return;
             }
-            
             if (uploadedFiles.length === 0) {
                 alert('Please upload some text files first');
                 return;
             }
-            
+
             let totalResults = 0;
             resultsContainer.innerHTML = '';
-            
+
             uploadedFiles.forEach(file => {
-                const matchingLines = file.lines.filter(line => 
-                    line.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-                
+                let matchingLines = [];
+                if (mode === 'or') {
+                    matchingLines = file.lines.filter(line =>
+                        searchTerms.some(term =>
+                            line.toLowerCase().includes(term.toLowerCase())
+                        )
+                    );
+                } else if (mode === 'and') {
+                    matchingLines = file.lines.filter(line =>
+                        searchTerms.every(term =>
+                            line.toLowerCase().includes(term.toLowerCase())
+                        )
+                    );
+                }
+
                 if (matchingLines.length > 0) {
                     totalResults += matchingLines.length;
-                    
+
                     const fileResult = document.createElement('div');
                     fileResult.className = 'file-result';
-                    
+
                     const header = document.createElement('div');
                     header.className = 'file-header';
                     header.innerHTML = `from ${file.name}`;
-                    
+
                     const content = document.createElement('div');
                     content.className = 'file-content';
-                    // Add fullscreen class if currently in fullscreen
                     if (resultsSection.classList.contains('fullscreen')) {
                         content.classList.add('fullscreen');
                     }
-                    
+
                     matchingLines.forEach(line => {
                         const entry = document.createElement('div');
                         entry.className = 'file-entry';
-                        
-                        // Highlight search term
-                        const regex = new RegExp(searchTerm, 'gi');
-                        const highlightedLine = line.replace(regex, 
-                            match => `<span class="highlight">${match}</span>`
-                        );
-                        
+
+                        // Highlight all search terms
+                        let highlightedLine = line;
+                        searchTerms.forEach(term => {
+                            if (term) {
+                                const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                                highlightedLine = highlightedLine.replace(regex, match =>
+                                    `<span class="highlight">${match}</span>`
+                                );
+                            }
+                        });
+
                         entry.innerHTML = highlightedLine;
                         content.appendChild(entry);
                     });
-                    
+
                     fileResult.appendChild(header);
                     fileResult.appendChild(content);
                     resultsContainer.appendChild(fileResult);
                 }
             });
-            
+
             if (totalResults === 0) {
                 resultsContainer.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-search"></i>
                         <h3>No Results Found</h3>
-                        <p>No entries match your search term "${searchTerm}"</p>
+                        <p>No entries match your search term${searchTerms.length > 1 ? 's' : ''}${searchTerms.length ? ` "${searchTerms.join(', ')}"` : ''}</p>
                     </div>
                 `;
             }
-            
+
             resultsCount.textContent = `Results: ${totalResults}`;
         }
         
