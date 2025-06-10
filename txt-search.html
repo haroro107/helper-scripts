@@ -477,6 +477,7 @@
                         <select id="search-mode" title="Search Mode">
                             <option value="or">OR</option>
                             <option value="and">AND</option>
+                            <option value="not">NOT</option>
                         </select>
                         <button id="search-btn">Search</button>
                     </div>
@@ -490,6 +491,7 @@
                     <select id="fullscreen-search-mode" title="Search Mode">
                         <option value="or">OR</option>
                         <option value="and">AND</option>
+                        <option value="not">NOT</option>
                     </select>
                     <button id="fullscreen-search-btn"><i class="fas fa-search"></i></button>
                 </div>
@@ -712,6 +714,12 @@
                             line.toLowerCase().includes(term.toLowerCase())
                         )
                     );
+                } else if (mode === 'not') {
+                    matchingLines = file.lines.filter(line =>
+                        searchTerms.every(term =>
+                            !line.toLowerCase().includes(term.toLowerCase())
+                        )
+                    );
                 }
 
                 const fileResult = document.createElement('div');
@@ -770,6 +778,15 @@
                             content.appendChild(entry);
                         });
                     }
+                }
+                // For NOT mode, show "excluded" for each search term
+                if (mode === 'not' && searchTerms.length > 0) {
+                    const entry = document.createElement('div');
+                    entry.className = 'file-entry';
+                    entry.style.opacity = '0.6';
+                    entry.style.fontStyle = 'italic';
+                    entry.innerHTML = `<span class="highlight">${searchTerms.join(', ')}</span> <span style="color:#ff5e62;">excluded</span>`;
+                    content.appendChild(entry);
                 }
 
                 if (matchingLines.length > 0 || (mode === 'or' && content.childNodes.length > 0)) {
