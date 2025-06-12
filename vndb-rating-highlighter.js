@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VNDB Composite Material Badge (Score and Total)
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.9
 // @description  Menampilkan badge gabungan berbentuk dua bulat (score dan total) seperti [5.06 | 102] dengan warna material design pada vndb.org. Jika rating value adalah "-" maka dianggap 0. Saat badge diklik, jika terdapat elemen <span lang="ja-Latn">, akan diarahkan ke Google Search dengan tambahan kata "Hitomi".
 // @author       haroro107
 // @match        *://vndb.org/*
@@ -40,27 +40,33 @@
   .composite-badge {
     display: inline-flex;
     align-items: center;
-    font-size: 16px;
-    font-weight: bold;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    margin: 5px;
-    border-radius: 50px; /* membulatkan keseluruhan badge */
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Roboto', Arial, sans-serif;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 3px 4px rgba(0,0,0,0.12), 0 1px 5px rgba(0,0,0,0.2);
+    margin: 6px 0;
+    border-radius: 4px;
     overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+  }
+  .composite-badge:hover {
+    box-shadow: 0 8px 10px rgba(0,0,0,0.14), 0 3px 14px rgba(0,0,0,0.12), 0 4px 5px rgba(0,0,0,0.2);
   }
   /* Bagian badge (score dan total) */
   .badge-half {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 45px;
-    height: 45px;
+    width: 48px;
+    height: 32px;
+    letter-spacing: 0.25px;
   }
   /* Divider antar bagian */
   .badge-divider {
-    padding: 0 4px;
-    background: #fff;
-    font-size: 16px;
-    color: #000;
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.7);
   }
   `;
   document.head.appendChild(style);
@@ -98,36 +104,35 @@
           const compositeBadge = document.createElement("span");
           compositeBadge.classList.add("composite-badge");
 
-          // Jika terdapat <abbr class="icon-lang-en"> di dalam container, tambahkan border putih
-          if (container.querySelector('abbr.icon-lang-en')) {
-            compositeBadge.style.border = "1px solid #fff";
-          }
-
           // Buat elemen bagian score
           const scoreSpan = document.createElement("span");
           scoreSpan.classList.add("badge-half");
           const scoreColor = getScoreColor(score);
           scoreSpan.style.backgroundColor = scoreColor;
-          scoreSpan.style.color = (scoreColor === "#ffeb3b") ? "black" : "#fff";
+          scoreSpan.style.color = (scoreColor === "#ffeb3b") ? "rgba(0,0,0,0.87)" : "rgba(255,255,255,0.87)";
           scoreSpan.textContent = score.toFixed(2);
 
           // Buat divider
           const divider = document.createElement("span");
           divider.classList.add("badge-divider");
-          divider.textContent = "|";
 
           // Buat elemen bagian total
           const totalSpan = document.createElement("span");
           totalSpan.classList.add("badge-half");
           const totalColor = getTotalColor(total);
           totalSpan.style.backgroundColor = totalColor;
-          totalSpan.style.color = (totalColor === "#ffeb3b") ? "black" : "#fff";
+          totalSpan.style.color = (totalColor === "#ffeb3b") ? "rgba(0,0,0,0.87)" : "rgba(255,255,255,0.87)";
           totalSpan.textContent = total;
-
+           
           // Gabungkan semua bagian ke dalam compositeBadge
           compositeBadge.appendChild(scoreSpan);
+          compositeBadge.appendChild(divider);
           compositeBadge.appendChild(totalSpan);
 
+          // Tambahkan effect ripple untuk klik feedback
+          compositeBadge.style.position = "relative";
+          compositeBadge.style.overflow = "hidden";
+          
           // Tambahkan event klik untuk membuka link jika terdapat elemen <span lang="ja-Latn">
           const jaLatnSpan = container.querySelector('span[lang="ja-Latn"]');
           if (jaLatnSpan) {
