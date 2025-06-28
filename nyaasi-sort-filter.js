@@ -5,7 +5,7 @@
 // @description  Filter by downloads & sort by download or rate per day on nyaa.si, with styled selects and embedded labels in options
 // @author       Your Name
 // @match        https://nyaa.si/*
-// @match        https://sukebei.nyaa.si/*
+// @match        *.nyaa.si/*
 // @grant        none
 // ==/UserScript==
 
