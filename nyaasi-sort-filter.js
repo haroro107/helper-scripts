@@ -1,109 +1,121 @@
 // ==UserScript==
-// @name         Nyaa.si Table Filter and Sort
+// @name         Nyaa.si Filter & Sort (Download / Rate with Styled Selects)
 // @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Adds filtering and sorting functionality to the table on nyaa.si
+// @version      1.8
+// @description  Filter by downloads & sort by download or rate per day on nyaa.si, with styled selects and embedded labels in options
 // @author       Your Name
 // @match        https://nyaa.si/*
 // @match        https://sukebei.nyaa.si/*
 // @grant        none
 // ==/UserScript==
 
-(function () {
+(function() {
     'use strict';
 
-    // Locate the parent element of the table
-    const tableResponsiveDiv = document.querySelector('div.table-responsive');
-    if (!tableResponsiveDiv) return; // Exit if the target div is not found
+    // --- UI Setup ---
+    const wrapper = document.createElement('div');
+    wrapper.style = 'margin-bottom:10px; display:flex; gap:10px; align-items:center;';
 
-    // Create a wrapper div to hold the filters
-    const filterWrapper = document.createElement('div');
-    filterWrapper.style.marginBottom = '10px';
-    filterWrapper.style.display = 'flex';
-    filterWrapper.style.gap = '10px';
-    filterWrapper.style.alignItems = 'center';
-
-    // Create the filter select
-    const filterSelect = document.createElement('select');
-    filterSelect.style.padding = '5px';
-    filterSelect.style.borderRadius = '5px';
-    filterSelect.style.border = '1px solid #ccc';
-
-    // Add options to the filter select
-    const filterOptions = [
-        { value: '', text: 'Show All' },
-        { value: 1000, text: '> 1000' },
-        { value: 5000, text: '> 5000' },
-        { value: 10000, text: '> 10000' },
-        { value: 15000, text: '> 15000' },
-        { value: 20000, text: '> 20000' },
-    ];
-    filterOptions.forEach((option) => {
-        const opt = document.createElement('option');
-        opt.value = option.value;
-        opt.textContent = option.text;
-        filterSelect.appendChild(opt);
-    });
-    filterWrapper.appendChild(filterSelect);
-
-    // Create the sorting select
-    const sortSelect = document.createElement('select');
-    sortSelect.style.padding = '5px';
-    sortSelect.style.borderRadius = '5px';
-    sortSelect.style.border = '1px solid #ccc';
-
-    // Add options to the sorting select
-    const sortOptions = [
-        { value: '', text: 'No Sorting' },
-        { value: 'asc', text: 'Ascending' },
-        { value: 'desc', text: 'Descending' },
-    ];
-    sortOptions.forEach((option) => {
-        const opt = document.createElement('option');
-        opt.value = option.value;
-        opt.textContent = option.text;
-        sortSelect.appendChild(opt);
-    });
-    filterWrapper.appendChild(sortSelect);
-
-    // Insert the filter wrapper above the table
-    tableResponsiveDiv.parentNode.insertBefore(filterWrapper, tableResponsiveDiv);
-
-    // Add event listener for filtering and sorting
-    function applyFilterAndSort() {
-        const filterValue = parseInt(filterSelect.value, 10);
-        const sortValue = sortSelect.value;
-
-        const rows = Array.from(document.querySelectorAll('table tr')).slice(1); // Exclude header row
-
-        // Apply filtering
-        rows.forEach((row) => {
-            const lastTd = row.querySelector('td:last-child');
-            if (lastTd) {
-                const value = parseInt(lastTd.textContent.trim(), 10);
-                if (!isNaN(filterValue) && value < filterValue) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = '';
-                }
-            }
-        });
-
-        // Apply sorting
-        if (sortValue) {
-            const tbody = document.querySelector('table tbody');
-            rows.sort((a, b) => {
-                const aValue = parseInt(a.querySelector('td:last-child').textContent.trim(), 10) || 0;
-                const bValue = parseInt(b.querySelector('td:last-child').textContent.trim(), 10) || 0;
-                return sortValue === 'asc' ? aValue - bValue : bValue - aValue;
-            });
-
-            // Reappend rows in the sorted order
-            rows.forEach((row) => tbody.appendChild(row));
-        }
+    // helper to style selects
+    function styleSelect(sel) {
+        sel.style.padding = '5px';
+        sel.style.borderRadius = '5px';
+        sel.style.border = '1px solid #ccc';
     }
 
-    // Attach the event listeners
-    filterSelect.addEventListener('change', applyFilterAndSort);
-    sortSelect.addEventListener('change', applyFilterAndSort);
+    // 1) Filter minimum downloads (first option as label)
+    const filterSelect = document.createElement('select');
+    [{v:'',      t:'Filter'},
+     {v:'1000',  t:'>1000'},
+     {v:'5000',  t:'>5000'},
+     {v:'10000', t:'>10000'}]
+      .forEach(o => filterSelect.append(Object.assign(document.createElement('option'), {value:o.v, textContent:o.t})));
+    styleSelect(filterSelect);
+    wrapper.append(filterSelect);
+
+    // 2) Sort by metric (embedded label)
+    const metricSelect = document.createElement('select');
+    [{v:'',        t:'Sort by'},
+     {v:'download',t:'Download'},
+     {v:'rate',    t:'Rate per Day'}]
+      .forEach(o => metricSelect.append(Object.assign(document.createElement('option'), {value:o.v, textContent:o.t})));
+    styleSelect(metricSelect);
+    wrapper.append(metricSelect);
+
+    // 3) Order (first option as label)
+    const orderSelect = document.createElement('select');
+    [{v:'',     t:'-'},
+     {v:'asc',  t:'Ascending'},
+     {v:'desc', t:'Descending'}]
+      .forEach(o => orderSelect.append(Object.assign(document.createElement('option'), {value:o.v, textContent:o.t})));
+    styleSelect(orderSelect);
+    wrapper.append(orderSelect);
+
+    const tableDiv = document.querySelector('div.table-responsive');
+    if (!tableDiv) return;
+    tableDiv.parentNode.insertBefore(wrapper, tableDiv);
+
+    // --- store original download text ---
+    const rowsInit = Array.from(document.querySelectorAll('table tbody tr'));
+    rowsInit.forEach(r => {
+        const dlCell = r.querySelector('td:last-child');
+        if (dlCell) dlCell.dataset.original = dlCell.textContent.trim();
+    });
+
+    // --- main function ---
+    function applyAll() {
+        const minDL   = parseInt(filterSelect.value) || 0;
+        const metric  = metricSelect.value;
+        const order   = orderSelect.value;
+        const rows    = Array.from(document.querySelectorAll('table tbody tr'));
+        const now     = Date.now();
+
+        // 1) Filter
+        rows.forEach(r => {
+            const dl = parseInt(r.querySelector('td:last-child').dataset.original, 10) || 0;
+            r.style.display = dl < minDL ? 'none' : '';
+        });
+
+        // 2) No sorting restore originals
+        if (!metric || !order) {
+            rows.forEach(r => {
+                const c = r.querySelector('td:last-child');
+                if (c && c.dataset.original) c.textContent = c.dataset.original;
+            });
+            return;
+        }
+
+        // 3) Compute keys & update cell display
+        const toSort = rows
+            .filter(r => r.style.display !== 'none')
+            .map(r => {
+                const dlCell = r.querySelector('td:last-child');
+                const orig   = parseInt(dlCell.dataset.original, 10) || 0;
+                let key;
+
+                if (metric === 'download') {
+                    key = orig;
+                    dlCell.textContent = dlCell.dataset.original;
+                } else {
+                    const ts = parseInt(r.querySelector('td[data-timestamp]').dataset.timestamp, 10) * 1000;
+                    const days = Math.max((now - ts) / (1000*60*60*24), 1);
+                    key = orig / days;
+                    dlCell.textContent = `${orig} (${key.toFixed(2)})`;
+                }
+                return {row: r, key};
+            });
+
+        // 4) Sort
+        toSort.sort((a, b) => order === 'asc' ? a.key - b.key : b.key - a.key);
+
+        // 5) Re-append
+        const tbody = document.querySelector('table tbody');
+        toSort.forEach(obj => tbody.appendChild(obj.row));
+    }
+
+    // --- listeners ---
+    [filterSelect, metricSelect, orderSelect].forEach(el =>
+        el.addEventListener('change', applyAll)
+    );
+
 })();
